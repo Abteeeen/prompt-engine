@@ -18,26 +18,7 @@ app.set('trust proxy', 1);
 // ── CORS ────────────────────────────────────────────────────────────────────
 app.use(cors({
   origin: function (origin, callback) {
-    if (process.env.CORS_ALLOW_ALL === 'true') return callback(null, true);
-
-    const allowed = new Set([
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'http://localhost:5175',
-      process.env.FRONTEND_URL,
-      ...(process.env.FRONTEND_URLS ? process.env.FRONTEND_URLS.split(',') : []),
-    ].filter(Boolean).map(s => String(s).trim()).filter(Boolean));
-
-    // Allow same-origin / non-browser requests (no Origin header)
-    if (!origin) return callback(null, true);
-    if (allowed.has(origin)) return callback(null, true);
-
-    const err = new Error('Not allowed by CORS');
-    // @ts-ignore
-    err.status = 403;
-    // @ts-ignore
-    err.statusCode = 403;
-    return callback(err);
+    return callback(null, true);
   },
   credentials: true,
 }));
