@@ -18,13 +18,13 @@ type PromptType =
   | 'automation'
 
 const PROMPT_TYPE_CONFIG: Record<PromptType, { label: string; hint: string }> = {
-  auto:       { label: 'Auto',       hint: 'Let the AI detect the best structure automatically.' },
-  research:   { label: 'Research',   hint: 'Analyze, investigate, or summarize information and data.' },
-  writing:    { label: 'Writing',    hint: 'Blogs, emails, articles, landing pages, and more.' },
-  planning:   { label: 'Planning',   hint: 'Explore options, strategize, and plan projects or goals.' },
-  agent:      { label: 'Agent',      hint: 'Design custom GPTs, personas, or reusable assistants.' },
-  image:      { label: 'Image',      hint: 'Describe images, styles, and constraints for image models.' },
-  code:       { label: 'Code',       hint: 'Development, debugging, refactors, and code reviews.' },
+  auto: { label: 'Auto', hint: 'Let the AI detect the best structure automatically.' },
+  research: { label: 'Research', hint: 'Analyze, investigate, or summarize information and data.' },
+  writing: { label: 'Writing', hint: 'Blogs, emails, articles, landing pages, and more.' },
+  planning: { label: 'Planning', hint: 'Explore options, strategize, and plan projects or goals.' },
+  agent: { label: 'Agent', hint: 'Design custom GPTs, personas, or reusable assistants.' },
+  image: { label: 'Image', hint: 'Describe images, styles, and constraints for image models.' },
+  code: { label: 'Code', hint: 'Development, debugging, refactors, and code reviews.' },
   automation: { label: 'Automation', hint: 'Workflows for tools like n8n, Zapier, and similar.' },
 }
 
@@ -126,11 +126,10 @@ function AIGenerator() {
                   key={type}
                   type="button"
                   onClick={() => setPromptType(type)}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all ${
-                    promptType === type
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all ${promptType === type
                       ? 'bg-white/15 text-white border border-white/20'
                       : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/5'
-                  }`}
+                    }`}
                 >
                   {PROMPT_TYPE_CONFIG[type].label}
                 </button>
@@ -171,7 +170,7 @@ function AIGenerator() {
               className="w-full h-9 px-3 rounded-lg text-xs flex items-center justify-between bg-white/5 text-gray-200 hover:bg-white/10 border border-dashed border-white/20 transition-colors"
             >
               <span className="flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M7 9l5-5 5 5"/><path d="M12 4v12"/></svg>
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /><path d="M7 9l5-5 5 5" /><path d="M12 4v12" /></svg>
                 {fileName ? <span className="truncate max-w-[120px]">{fileName}</span> : 'Upload context file'}
               </span>
               <span className="text-[10px] text-gray-500">.txt · .md · .csv · .json</span>
@@ -219,86 +218,87 @@ function AIGenerator() {
             </div>
           </div>
 
-      {/* Example chips */}
-      <div className="flex flex-wrap gap-2 mt-3 justify-center md:justify-start">
-        {EXAMPLES.slice(0, 4).map(ex => (
-          <button
-            key={ex}
-            onClick={() => { setInput(ex); generate(ex) }}
-            className="text-xs text-gray-500 hover:text-gray-300 px-3 py-1.5 rounded-lg hover:bg-white/5 transition-all border border-white/5 hover:border-white/10"
-          >
-            {ex.length > 40 ? ex.slice(0, 40) + '…' : ex}
-          </button>
-        ))}
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="mt-4 px-4 py-3 rounded-xl text-sm text-red-400 animate-fade-in" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-          {error}
-        </div>
-      )}
-
-      {/* Loading shimmer */}
-      {loading && (
-        <div className="mt-6 glass rounded-2xl p-5 space-y-3 animate-fade-in">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-xl bg-gradient-brand flex items-center justify-center animate-pulse-glow shrink-0">
-              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 1 0 10 10" /><path d="M12 6v6l4 2" /></svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">Senior prompt engineer at work...</p>
-              <p className="text-xs text-gray-500">Crafting the perfect prompt for your request</p>
-            </div>
-          </div>
-          {[100, 85, 92, 70].map((w, i) => (
-            <div key={i} className="h-3 skeleton rounded-md" style={{ width: `${w}%` }} />
-          ))}
-        </div>
-      )}
-
-      {/* Result */}
-      {result && !loading && (
-        <div ref={resultRef} className="mt-6 animate-slide-up md:col-span-2">
-          <div className="glass rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(139,92,246,0.2)' }}>
-            {/* Result header */}
-            <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(139,92,246,0.06)' }}>
-              <div className="flex items-center gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-semibold text-white">Your Perfect Prompt</span>
-                <span className="text-xs text-gray-600">
-                  {result.source === 'groq' ? '· AI-powered' : '· Template engine'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <QualityScoreMini data={result.qualityScore} />
-                <CopyBtn text={editedPrompt} large />
-              </div>
-            </div>
-
-            {/* Editable prompt */}
-            <textarea
-              value={editedPrompt}
-              onChange={e => setEditedPrompt(e.target.value)}
-              className="w-full bg-transparent px-5 py-4 text-sm text-gray-200 font-mono leading-relaxed focus:outline-none resize-none"
-              style={{ minHeight: '240px' }}
-              spellCheck={false}
-            />
-
-            {/* Footer hint */}
-            <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <p className="text-xs text-gray-600">You can edit this prompt directly above before copying.</p>
-              <Link
-                to="/generate"
-                className="text-xs text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1"
+          {/* Example chips */}
+          <div className="flex flex-wrap gap-2 mt-3 justify-center md:justify-start">
+            {EXAMPLES.slice(0, 4).map(ex => (
+              <button
+                key={ex}
+                onClick={() => { setInput(ex); generate(ex) }}
+                className="text-xs text-gray-500 hover:text-gray-300 px-3 py-1.5 rounded-lg hover:bg-white/5 transition-all border border-white/5 hover:border-white/10"
               >
-                Use a template instead
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-              </Link>
-            </div>
+                {ex.length > 40 ? ex.slice(0, 40) + '…' : ex}
+              </button>
+            ))}
           </div>
+
+          {/* Error */}
+          {error && (
+            <div className="mt-4 px-4 py-3 rounded-xl text-sm text-red-400 animate-fade-in" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              {error}
+            </div>
+          )}
+
+          {/* Loading shimmer */}
+          {loading && (
+            <div className="mt-6 glass rounded-2xl p-5 space-y-3 animate-fade-in">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-xl bg-gradient-brand flex items-center justify-center animate-pulse-glow shrink-0">
+                  <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 1 0 10 10" /><path d="M12 6v6l4 2" /></svg>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">Senior prompt engineer at work...</p>
+                  <p className="text-xs text-gray-500">Crafting the perfect prompt for your request</p>
+                </div>
+              </div>
+              {[100, 85, 92, 70].map((w, i) => (
+                <div key={i} className="h-3 skeleton rounded-md" style={{ width: `${w}%` }} />
+              ))}
+            </div>
+          )}
+
+          {/* Result */}
+          {result && !loading && (
+            <div ref={resultRef} className="mt-6 animate-slide-up">
+              <div className="glass rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(139,92,246,0.2)' }}>
+                {/* Result header */}
+                <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(139,92,246,0.06)' }}>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-xs font-semibold text-white">Your Perfect Prompt</span>
+                    <span className="text-xs text-gray-600">
+                      {result.source === 'groq' ? '· AI-powered' : '· Template engine'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <QualityScoreMini data={result.qualityScore} />
+                    <CopyBtn text={editedPrompt} large />
+                  </div>
+                </div>
+
+                {/* Editable prompt */}
+                <textarea
+                  value={editedPrompt}
+                  onChange={e => setEditedPrompt(e.target.value)}
+                  className="w-full bg-transparent px-5 py-4 text-sm text-gray-200 font-mono leading-relaxed focus:outline-none resize-none"
+                  style={{ minHeight: '240px' }}
+                  spellCheck={false}
+                />
+
+                {/* Footer hint */}
+                <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <p className="text-xs text-gray-600">You can edit this prompt directly above before copying.</p>
+                  <Link
+                    to="/generate"
+                    className="text-xs text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1"
+                  >
+                    Use a template instead
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      )}
       </div>
     </div>
   )
@@ -342,7 +342,7 @@ function HowToUse() {
         {HOW_TO.map(({ step, icon, title, desc, example }) => (
           <div key={step} className="glass p-6 relative overflow-hidden group hover:border-purple-500/20 transition-all duration-300" style={{ borderRadius: '20px' }}>
             {/* Step number watermark */}
-            <div className="absolute -top-3 -right-1 text-7xl font-black text-white/3 select-none pointer-events-none">{step}</div>
+            <div className="absolute top-4 right-4 text-5xl font-black text-white/3 select-none pointer-events-none">{step}</div>
 
             <div className="text-2xl mb-4">{icon}</div>
             <h3 className="text-sm font-bold text-white mb-2">{title}</h3>
@@ -352,10 +352,6 @@ function HowToUse() {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Arrow connectors — desktop only */}
-      <div className="hidden md:flex items-center justify-center gap-4 mt-2 -mt-8 pointer-events-none" style={{ position: 'relative', zIndex: 10 }}>
       </div>
     </section>
   )
@@ -406,7 +402,7 @@ export function HomePage() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8 animate-fade-in" style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>
           <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-          <span className="text-xs font-semibold text-purple-300 tracking-wide"> Your personal AI prompt engineer</span>
+          <span className="text-xs font-semibold text-purple-300 tracking-wide">⚡ Your personal AI prompt engineer — free</span>
         </div>
 
         {/* Headline */}
