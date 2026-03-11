@@ -515,11 +515,11 @@ function TemplatesPreview({ templates }: { templates: Template[] }) {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 overflow-hidden">
         {templates.slice(0, 5).map(t => <TemplateCard key={t.id} template={t} />)}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 overflow-hidden">
         {templates.slice(5, 10).map(t => <TemplateCard key={t.id} template={t} compact />)}
       </div>
     </section>

@@ -54,7 +54,7 @@ export function TemplateCard({ template, compact }: Props) {
   }
 
   return (
-    <Link to={`/templates/${template.id}`} className="glass glass-hover flex flex-col p-5 group h-full">
+    <Link to={`/templates/${template.id}`} className="glass glass-hover flex flex-col p-5 group h-full overflow-hidden min-w-0">
       <div className="flex items-start justify-between mb-3">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)' }}>
           {icon}
@@ -65,11 +65,20 @@ export function TemplateCard({ template, compact }: Props) {
       <h3 className="text-sm font-bold text-white mb-1.5 group-hover:text-purple-300 transition-colors">{template.name}</h3>
       <p className="text-xs text-gray-500 leading-relaxed flex-1">{template.description}</p>
 
-      <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <Badge label={template.category} category={template.category} />
-        <span className="text-xs text-purple-400 font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
+      <div className="flex items-center justify-between mt-4 pt-4 gap-2 min-w-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <span className="shrink-0 truncate max-w-[60%] text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide"
+          style={{
+            background: 'rgba(139,92,246,0.15)',
+            border: '1px solid rgba(139,92,246,0.25)',
+            color: '#a78bfa'
+          }}>
+          {template.category}
+        </span>
+        <span className="shrink-0 text-xs text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1 whitespace-nowrap">
           Try it
-          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
         </span>
       </div>
     </Link>
