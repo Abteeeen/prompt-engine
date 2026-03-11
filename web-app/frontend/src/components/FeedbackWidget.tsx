@@ -44,7 +44,7 @@ export function FeedbackWidget() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-40">
+    <div className="z-40 flex justify-center w-full md:w-auto md:fixed md:bottom-4 md:right-4 mt-8 mb-24 md:mt-0 md:mb-0">
       {!open && (
         <Button
           variant="secondary"
