@@ -3,7 +3,7 @@ import { api } from '../services/api'
 import type { Template } from '../types'
 import { TemplateCard } from '../components/TemplateCard'
 
-const ALL_CATEGORIES = ['All', 'Development', 'Analytics', 'Content', 'Support', 'Communication', 'Marketing', 'Research', 'Education', 'Product', 'Creativity']
+const ALL_CATEGORIES = ['All', 'Development', 'Analytics', 'Content', 'Support', 'Communication', 'Marketing', 'Research', 'Education', 'Product', 'Creativity', 'Sales', 'Multimedia', 'Legal', 'Business', 'Productivity', 'Design', 'HR']
 
 export function TemplatesPage() {
   const [templates, setTemplates] = useState<Template[]>([])
