@@ -1,39 +1,59 @@
 import React, { useEffect, useState } from 'react'
 
+type Theme = 'default' | 'dark' | 'light'
+
 export function ThemeToggle({ variant = 'desktop' }: { variant?: 'mobile' | 'desktop' }) {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const [theme, setTheme] = useState<Theme>('default')
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   useEffect(() => {
-    const stored = localStorage.getItem('app_theme') as 'dark' | 'light' | null;
+    const stored = localStorage.getItem('app_theme') as Theme | null;
     if (stored) {
       setTheme(stored)
       document.documentElement.setAttribute('data-theme', stored)
     } else {
-      document.documentElement.setAttribute('data-theme', 'dark')
+      document.documentElement.setAttribute('data-theme', 'default')
     }
   }, [])
 
   const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark'
+    // Cycle: default -> dark -> light -> default
+    const newTheme: Theme = theme === 'default' ? 'dark' : theme === 'dark' ? 'light' : 'default'
+    
+    // Trigger Dr. Strange animation when going back to Default
+    if (newTheme === 'default') {
+      setIsTransitioning(true)
+      document.body.classList.add('theme-transition-active')
+      setTimeout(() => {
+        setIsTransitioning(false)
+        document.body.classList.remove('theme-transition-active')
+      }, 1200) // Match the 1.2s CSS animation
+    }
+
     setTheme(newTheme)
     localStorage.setItem('app_theme', newTheme)
     document.documentElement.setAttribute('data-theme', newTheme)
   }
 
-  // Mobile variants often need just the icon or diff sizing
   const isMobile = variant === 'mobile'
 
   return (
     <button
       onClick={toggleTheme}
+      disabled={isTransitioning}
       className={`relative flex items-center justify-center rounded-full transition-all focus:outline-none ${
         isMobile 
           ? 'w-8 h-8 text-white/50 hover:text-white/80' 
           : 'w-9 h-9 border border-[var(--glass-border,rgba(255,255,255,0.1))] bg-[var(--glass-bg,rgba(255,255,255,0.05))] text-[var(--muted)] hover:text-[var(--text)] overflow-hidden shadow-sm'
       }`}
-      title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+      title={`Current: ${theme} - Click to switch`}
     >
-      {theme === 'dark' ? (
+      {theme === 'default' ? (
+        // Thunder (Default mode)
+        <svg className={isMobile ? "w-5 h-5" : "w-4 h-4"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+      ) : theme === 'dark' ? (
         // Moon (Dark mode)
         <svg className={isMobile ? "w-5 h-5" : "w-4 h-4"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
