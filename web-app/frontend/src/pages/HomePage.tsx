@@ -683,7 +683,9 @@ export function HomePage() {
                   Let&apos;s build something <span className="gradient-text block mt-2">amazing.</span>
                 </h2>
                 <a 
-                  href="mailto:abhiramaanil@gmail.com" 
+                  href="https://mail.google.com/mail/?view=cm&to=abhiramaanil@gmail.com&su=Project%20Inquiry%20from%20Prompt%20Engine&body=Hi%20Abhiram%2C%0A%0AI%20found%20your%20Prompt%20Engine%20and%20would%20love%20to%20discuss%20a%20project!%0A%0A"
+                  target="_blank"
+                  rel="noreferrer"
                   className="inline-flex items-center gap-3 px-8 py-4 rounded-full text-lg font-bold text-white transition-all transform hover:scale-105 active:scale-95"
                   style={{
                     background: 'linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%)',
@@ -693,6 +695,9 @@ export function HomePage() {
                   Start a Project
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                 </a>
+                <p className="mt-3 text-xs text-[var(--muted)]">
+                  or email directly: <a href="mailto:abhiramaanil@gmail.com" className="text-[var(--accent)] hover:underline">abhiramaanil@gmail.com</a>
+                </p>
               </div>
 
               {/* Right Side: Socials & Contact Info */}
