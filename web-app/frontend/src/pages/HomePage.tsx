@@ -532,7 +532,9 @@ export function HomePage() {
   useEffect(() => {
     api.templates.list().then(setTemplates).catch(() => { })
     api.analytics.track('page_view', undefined, { page: 'home' })
+  }, [])
     
+  useEffect(() => {
     // Setup Scroll Reveal
     const observer = new IntersectionObserver(
       (entries) => {
@@ -547,7 +549,7 @@ export function HomePage() {
     
     document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el))
     return () => observer.disconnect()
-  }, [])
+  }, [templates])
 
   // Interactive 3D Hover Effect for Hero Text
   const handleHeroMouseMove = (e: React.MouseEvent<HTMLHeadingElement>) => {
@@ -632,53 +634,75 @@ export function HomePage() {
       {/* Templates */}
       <TemplatesPreview templates={templates} />
 
-      {/* Let's Connect Footer (Griflan Inspired) */}
-      <section className="relative px-6 py-32 mt-20 border-t border-[var(--glass-border)] bg-[var(--bg-2)] overflow-hidden scroll-reveal">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-end gap-12 relative z-10">
-          
-          {/* Left Side: Massive Text Link */}
-          <div className="w-full md:w-2/3">
-            <p className="text-sm font-bold text-[var(--accent)] uppercase tracking-widest mb-6">Got an idea?</p>
-            <a 
-              href="mailto:abhiramaanil@gmail.com" 
-              className="block text-6xl sm:text-8xl lg:text-[10rem] font-black leading-[0.85] tracking-tighter text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-500"
-            >
-              Let&apos;s
-              <br/>
-              Connect.
-            </a>
-          </div>
+      {/* Let's Connect Footer (Floating Animated Card) */}
+      <section className="relative px-6 py-32 mt-10 overflow-hidden bg-transparent">
+        <div className="max-w-5xl mx-auto scroll-reveal translate-y-[40px] opacity-0 transition-all duration-1000 ease-out will-change-transform">
+          <div className="relative rounded-[2rem] p-12 md:p-16 overflow-hidden shadow-2xl transition-all duration-700 hover:shadow-purple-500/20"
+            style={{ 
+              background: 'var(--glass-bg, rgba(15, 15, 20, 0.8))',
+              border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.08))',
+              backdropFilter: 'blur(30px)'
+            }}
+          >
+            {/* Animated Spiral / Blob Background */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] pointer-events-none opacity-30 z-0 scale-150">
+              <div 
+                className="absolute inset-0 rounded-full blur-[80px] mix-blend-screen"
+                style={{
+                  background: 'conic-gradient(from 0deg, #7c3aed, #06b6d4, #ea580c, #7c3aed)',
+                  animation: 'blob-spin 10s linear infinite'
+                }}
+              />
+            </div>
 
-          {/* Right Side: Socials & Contact Info */}
-          <div className="w-full md:w-1/3 flex flex-col gap-8 md:items-end text-left md:text-right">
-            <div>
-              <p className="text-xs text-[var(--muted)] uppercase tracking-widest mb-2 font-bold">Socials</p>
-              <div className="flex flex-col gap-1">
-                <a href="https://www.linkedin.com/in/abhiram-anil-092946223/" target="_blank" rel="noreferrer" className="text-xl font-medium text-[var(--text)] hover:text-[var(--accent)] transition-colors inline-block hover:-translate-y-1 transform duration-300">
-                  LinkedIn ↗
-                </a>
-                <a href="https://www.instagram.com/__ab_10__/" target="_blank" rel="noreferrer" className="text-xl font-medium text-[var(--text)] hover:text-[var(--accent)] transition-colors inline-block hover:-translate-y-1 transform duration-300">
-                  Instagram ↗
+            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-12 text-center md:text-left">
+              {/* Left Side: Text */}
+              <div className="w-full md:w-1/2">
+                <p className="text-sm font-bold text-[var(--accent)] uppercase tracking-widest mb-4">Got an idea?</p>
+                <h2 className="text-5xl sm:text-6xl font-black leading-tight text-[var(--text)] mb-8">
+                  Let&apos;s build something <span className="gradient-text block mt-2">amazing.</span>
+                </h2>
+                <a 
+                  href="mailto:abhiramaanil@gmail.com" 
+                  className="inline-flex items-center gap-3 px-8 py-4 rounded-full text-lg font-bold text-white transition-all transform hover:scale-105 active:scale-95"
+                  style={{
+                    background: 'linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%)',
+                    boxShadow: '0 10px 30px rgba(124, 58, 237, 0.3)'
+                  }}
+                >
+                  Start a Project
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                 </a>
               </div>
-            </div>
 
-            <div>
-              <p className="text-xs text-[var(--muted)] uppercase tracking-widest mb-2 font-bold">Inquiries</p>
-              <a href="mailto:abhiramaanil@gmail.com" className="block text-xl font-medium text-[var(--text)] hover:text-[var(--accent)] transition-colors mb-1">
-                abhiramaanil@gmail.com
-              </a>
-              <a href="tel:8547562600" className="block text-xl font-medium text-[var(--text)] hover:text-[var(--accent)] transition-colors">
-                +91 8547 562 600
-              </a>
+              {/* Right Side: Socials & Contact Info */}
+              <div className="w-full md:w-1/2 flex flex-col sm:flex-row gap-6 justify-center md:justify-end">
+                <div className="glass p-6 rounded-2xl flex-1 max-w-[200px]" style={{ background: 'rgba(0,0,0,0.4)', borderColor: 'rgba(255,255,255,0.05)' }}>
+                  <p className="text-xs text-[var(--muted)] uppercase tracking-widest mb-4 font-bold">Socials</p>
+                  <div className="flex flex-col gap-3">
+                    <a href="https://www.linkedin.com/in/abhiram-anil-092946223/" target="_blank" rel="noreferrer" className="text-sm font-medium text-[var(--text)] hover:text-white transition-colors flex items-center justify-between group">
+                      LinkedIn <span className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[var(--accent)]">↗</span>
+                    </a>
+                    <a href="https://www.instagram.com/__ab_10__/" target="_blank" rel="noreferrer" className="text-sm font-medium text-[var(--text)] hover:text-white transition-colors flex items-center justify-between group">
+                      Instagram <span className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[var(--accent)]">↗</span>
+                    </a>
+                  </div>
+                </div>
+
+                <div className="glass p-6 rounded-2xl flex-1 max-w-[220px]" style={{ background: 'rgba(0,0,0,0.4)', borderColor: 'rgba(255,255,255,0.05)' }}>
+                  <p className="text-xs text-[var(--muted)] uppercase tracking-widest mb-4 font-bold">Inquiries</p>
+                  <div className="flex flex-col gap-3">
+                    <a href="mailto:abhiramaanil@gmail.com" className="text-sm font-medium text-[var(--text)] hover:text-white transition-colors truncate block">
+                      abhiramaanil@gmail.com
+                    </a>
+                    <a href="tel:8547562600" className="text-sm font-medium text-[var(--text)] hover:text-white transition-colors block">
+                      +91 8547 562 600
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          
-        </div>
-
-        {/* Huge Background Watermark */}
-        <div className="absolute -bottom-20 -left-10 text-[20vw] font-black text-[var(--text)] opacity-[0.02] pointer-events-none whitespace-nowrap overflow-hidden">
-          CONNECT
         </div>
       </section>
     </div>

@@ -296,14 +296,33 @@
     transform-origin: center bottom;
   }
   
-  /* Default Theme (Ice Melting) */
+  /* Default Theme (Ice Cube) */
   :root[data-theme="default"] .logo-symbol,
   :root:not([data-theme="dark"]):not([data-theme="light"]) .logo-symbol {
-    animation: ice-melt 5s ease-in-out infinite;
-    box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
-    border: 2px solid rgba(255,255,255,0.7);
+    position: relative;
     border-radius: 8px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, transparent 100%);
+    border: 2px solid rgba(255,255,255,0.6);
+    background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(200, 230, 255, 0.1) 100%);
+    box-shadow: inset 0 0 10px rgba(255,255,255,0.8), 0 0 15px rgba(6, 182, 212, 0.5);
+    backdrop-filter: blur(4px);
+    overflow: visible;
+  }
+  
+  /* Water droplet */
+  :root[data-theme="default"] .logo-symbol::after,
+  :root:not([data-theme="dark"]):not([data-theme="light"]) .logo-symbol::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 50% 50% 50% 0;
+    transform: translateX(-50%) rotate(45deg);
+    animation: water-drop 2.5s infinite ease-in;
+    box-shadow: 0 0 5px rgba(6, 182, 212, 0.5);
+    pointer-events: none;
   }
   
   :root[data-theme="default"] .logo-text,
@@ -333,11 +352,23 @@
   
   /* Light Theme (Fire) */
   :root[data-theme="light"] .logo-symbol {
+    position: relative;
     border-radius: 50%;
     border: 2px solid #EA580C;
     background: radial-gradient(circle, #fcd34d 0%, #ea580c 50%, transparent 100%);
     box-shadow: 0 0 20px #fcd34d, 0 0 40px #ea580c;
-    animation: fire-flicker 1.5s infinite alternate;
+  }
+  
+  :root[data-theme="light"] .logo-symbol::before {
+    content: '🔥';
+    position: absolute;
+    font-size: 24px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: literal-fire 2s infinite ease-in-out;
+    pointer-events: none;
+    z-index: -1;
   }
   
   :root[data-theme="light"] .logo-text {
@@ -418,27 +449,24 @@
   }
 }
 
-@keyframes ice-melt {
-  0%, 100% { 
-    border-radius: 8px; 
-    box-shadow: 0 0 20px rgba(124, 58, 237, 0.4); 
-  }
-  40% { 
-    border-bottom-right-radius: 20px; 
-    border-bottom-left-radius: 12px;
-    box-shadow: 0 15px 25px rgba(6, 182, 212, 0.5), 0 30px 10px -15px rgba(255,255,255,0.4); 
-  }
-  60% {
-    border-bottom-right-radius: 8px; 
-    border-bottom-left-radius: 8px;
-    box-shadow: 0 0 20px rgba(124, 58, 237, 0.4), 0 40px 10px -20px transparent;
-  }
+@keyframes water-drop {
+  0% { transform: translateX(-50%) rotate(45deg) scale(0); opacity: 0; bottom: 0px; }
+  20% { transform: translateX(-50%) rotate(45deg) scale(1.5); opacity: 1; bottom: -5px; }
+  80% { transform: translateX(-50%) rotate(45deg) scale(1.5); opacity: 0.8; bottom: -40px; }
+  100% { transform: translateX(-50%) rotate(45deg) scale(0.5); opacity: 0; bottom: -50px; }
 }
 
-@keyframes fire-flicker {
-  0% { transform: scale(1); box-shadow: 0 0 20px #fcd34d, 0 0 30px #ea580c; }
-  50% { transform: scale(1.02) translateY(-2px); box-shadow: 0 0 25px #fcd34d, 0 -5px 40px #ea580c, 0 -15px 20px #dc2626; }
-  100% { transform: scale(1); box-shadow: 0 0 20px #fcd34d, 0 0 35px #ea580c; }
+@keyframes literal-fire {
+  0% { transform: translate(-50%, -50%) scale(1) translateY(0) rotate(-10deg); filter: blur(2px) drop-shadow(0 0 10px #EA580C); opacity: 0.8; }
+  50% { transform: translate(-50%, -50%) scale(1.5) translateY(-12px) rotate(10deg); filter: blur(0px) drop-shadow(0 0 20px #fcd34d); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1) translateY(0) rotate(-10deg); filter: blur(2px) drop-shadow(0 0 10px #EA580C); opacity: 0.8; }
+}
+
+@keyframes blob-spin {
+  0% { transform: rotate(0deg) scale(1); }
+  33% { transform: rotate(120deg) scale(1.1) translate(20px, -20px); }
+  66% { transform: rotate(240deg) scale(0.9) translate(-20px, 20px); }
+  100% { transform: rotate(360deg) scale(1); }
 }
 
 /* Scroll Reveal Classes */
