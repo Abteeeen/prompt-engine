@@ -227,15 +227,17 @@ function AIGenerator() {
       <div className="w-full max-w-3xl mx-auto">
         {/* Main Input Container */}
         <div
-          className="relative rounded-3xl transition-all duration-300"
+          className="relative rounded-3xl transition-all duration-300 backdrop-blur-3xl overflow-hidden"
           style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(139, 92, 246, 0.25)',
+            background: 'var(--glass-bg, rgba(255, 255, 255, 0.03))',
+            border: `1px solid var(--glass-border, rgba(139, 92, 246, 0.25))`,
             boxShadow: loading
-              ? '0 0 80px rgba(139, 92, 246, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-              : '0 0 60px rgba(139, 92, 246, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+              ? '0 0 80px rgba(139, 92, 246, 0.4), inset 0 0 20px rgba(139, 92, 246, 0.1)'
+              : '0 4px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
           }}
         >
+          {/* Subtle glowing edge effect inside the box */}
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%)' }} />
           {/* Textarea */}
           <textarea
             ref={textareaRef}
