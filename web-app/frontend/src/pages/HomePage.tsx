@@ -290,18 +290,14 @@ function AIGenerator() {
         <div
           onClick={() => { setShowTypeDropdown(false); setShowOptionsPanel(false) }}
           className="fixed inset-0 z-[9998]"
-          style={{
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            background: 'rgba(0, 0, 0, 0.55)',
-          }}
+          style={{ background: 'rgba(0, 0, 0, 0.7)' }}
         />
       )}
 
       <div className="w-full max-w-3xl mx-auto">
         {/* Main Input Container */}
         <div
-          className="relative rounded-3xl transition-all duration-300 backdrop-blur-3xl"
+          className="relative rounded-3xl backdrop-blur-3xl"
           style={{
             background: 'var(--glass-bg, rgba(255, 255, 255, 0.03))',
             border: `1px solid var(--glass-border, rgba(139, 92, 246, 0.25))`,
@@ -318,10 +314,7 @@ function AIGenerator() {
           {(showTypeDropdown || showOptionsPanel) && (
             <div
               className="absolute inset-0 rounded-3xl z-10"
-              style={{
-                background: 'rgba(10, 10, 20, 0.85)',
-                backdropFilter: 'blur(4px)',
-              }}
+              style={{ background: 'rgba(10, 10, 20, 0.88)' }}
             />
           )}
           {/* Textarea */}
