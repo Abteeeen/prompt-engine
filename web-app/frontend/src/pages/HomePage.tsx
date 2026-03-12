@@ -119,6 +119,26 @@ function AIGenerator() {
   const [showTypeDropdown, setShowTypeDropdown] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null)
+
+  // ─── Persona Mode ───────────────────────────────────────────────
+  type Persona = 'auto' | 'ceo' | 'developer' | 'academic' | 'creative'
+  const PERSONAS: { id: Persona; label: string; emoji: string; hint: string }[] = [
+    { id: 'auto',      label: 'Auto',       emoji: '✨', hint: 'Smart default' },
+    { id: 'ceo',       label: 'CEO',        emoji: '💼', hint: 'Executive, strategic, ROI-focused' },
+    { id: 'developer', label: 'Dev',        emoji: '💻', hint: 'Technical, precise, code-first' },
+    { id: 'academic',  label: 'Academic',   emoji: '📚', hint: 'Rigorous, citations, formal' },
+    { id: 'creative',  label: 'Creative',   emoji: '🎨', hint: 'Imaginative, bold, story-driven' },
+  ]
+  const [persona, setPersona] = useState<Persona>('auto')
+
+  // ─── Output Length ──────────────────────────────────────────────
+  type PromptLength = 'focused' | 'standard' | 'detailed'
+  const LENGTHS: { id: PromptLength; label: string; hint: string }[] = [
+    { id: 'focused',  label: '⚡ Focused',  hint: '~100 words, sharp & direct' },
+    { id: 'standard', label: '📝 Standard', hint: '~300 words, balanced' },
+    { id: 'detailed', label: '🔍 Detailed', hint: '~600 words, exhaustive' },
+  ]
+  const [promptLength, setPromptLength] = useState<PromptLength>('standard')
   const fileRef = useRef<HTMLInputElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const resultRef = useRef<HTMLDivElement>(null)
@@ -145,7 +165,24 @@ function AIGenerator() {
         ? ''
         : `\n\nPROMPT TYPE: ${typeMeta.label}\nINTENT: ${typeMeta.hint}\n`
 
-    const req = `${base}${typePrefix}`
+    // Inject persona context
+    const personaMap: Record<string, string> = {
+      ceo:       '\n\nPERSONA MODE: CEO / Executive. Write this prompt for a business leader. Focus on ROI, strategy, outcomes, and high-level decisions. Use executive language. Avoid jargon.',
+      developer: '\n\nPERSONA MODE: Developer / Engineer. Write this prompt for a senior software engineer. Be technically precise. Include code examples where relevant. Use proper terminology.',
+      academic:  '\n\nPERSONA MODE: Academic / Researcher. Write this prompt for a researcher or student. Be rigorous and methodological. Include citation guidance and formal structure.',
+      creative:  '\n\nPERSONA MODE: Creative Director. Write this prompt for a creative thinker. Be imaginative, bold, and story-driven. Encourage lateral thinking and vivid imagery.',
+    }
+    const personaPrefix = personaMap[persona] || ''
+
+    // Inject length instruction
+    const lengthMap: Record<string, string> = {
+      focused:  '\n\nOUTPUT LENGTH: Write a FOCUSED prompt of approximately 80-120 words. Be direct and sharp. No padding.',
+      standard: '\n\nOUTPUT LENGTH: Write a STANDARD prompt of approximately 250-350 words. Well-structured and complete.',
+      detailed: '\n\nOUTPUT LENGTH: Write a DETAILED prompt of approximately 500-700 words. Exhaustive, with full role, task, requirements, constraints, edge cases, examples, and self-review.',
+    }
+    const lengthPrefix = lengthMap[promptLength] || ''
+
+    const req = `${base}${typePrefix}${personaPrefix}${lengthPrefix}`
     if (req.length < 5) return
     setLoading(true)
     setError('')
@@ -264,8 +301,8 @@ function AIGenerator() {
             onKeyDown={handleKey}
             placeholder="Describe what you need a prompt for..."
             rows={5}
-            className="w-full bg-transparent px-6 pt-6 pb-20 text-white placeholder:text-white/30 focus:outline-none text-base leading-relaxed resize-none"
-            style={{ minHeight: '140px' }}
+            className="w-full bg-transparent px-6 pt-6 pb-28 text-white placeholder:text-white/30 focus:outline-none text-base leading-relaxed resize-none"
+            style={{ minHeight: '160px' }}
           />
 
           {/* File attachment indicator */}
@@ -283,94 +320,134 @@ function AIGenerator() {
           )}
 
           {/* Bottom Bar */}
-          <div className="absolute bottom-0 left-0 right-0 h-14 px-4 flex items-center justify-between bg-gradient-to-t from-black/20 to-transparent">
-            {/* Left: Prompt Type & File Upload */}
-            <div className="flex items-center gap-2">
-              {/* Prompt Type Dropdown */}
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                  className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium text-white/70 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] hover:border-white/[0.2] transition-all"
-                >
-                  <span className="text-white/50">Type:</span>
-                  <span className="text-white/90">{PROMPT_TYPE_CONFIG[promptType].label}</span>
-                  <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform ${showTypeDropdown ? 'rotate-180' : ''}`} />
-                </button>
+          <div className="absolute bottom-0 left-0 right-0 px-3 pb-2 pt-1 flex flex-col gap-1.5 bg-gradient-to-t from-black/30 to-transparent">
 
-                {/* Dropdown Menu - Opens Downward */}
-                {showTypeDropdown && (
-                  <div
-                    className="absolute top-full left-0 mt-2 min-w-[220px] max-h-[280px] overflow-y-auto rounded-xl overflow-hidden z-[9999]"
-                    style={{
-                      background: 'rgba(15, 15, 25, 0.98)',
-                      border: '1px solid rgba(139, 92, 246, 0.25)',
-                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-                    }}
+            {/* Row 1: Persona Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
+              <span className="text-[9px] text-white/30 font-medium uppercase tracking-wider shrink-0">Persona</span>
+              {PERSONAS.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => setPersona(p.id)}
+                  title={p.hint}
+                  className={`shrink-0 flex items-center gap-1 h-6 px-2 rounded-lg text-[10px] font-medium transition-all ${
+                    persona === p.id
+                      ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+                      : 'text-white/50 bg-white/[0.04] border border-white/[0.08] hover:text-white/80 hover:bg-white/[0.08]'
+                  }`}
+                >
+                  <span>{p.emoji}</span>
+                  <span>{p.label}</span>
+                </button>
+              ))}
+              <span className="text-white/10 mx-1">|</span>
+              <span className="text-[9px] text-white/30 font-medium uppercase tracking-wider shrink-0">Length</span>
+              {LENGTHS.map(l => (
+                <button
+                  key={l.id}
+                  onClick={() => setPromptLength(l.id)}
+                  title={l.hint}
+                  className={`shrink-0 flex items-center h-6 px-2 rounded-lg text-[10px] font-medium transition-all ${
+                    promptLength === l.id
+                      ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-500/40'
+                      : 'text-white/50 bg-white/[0.04] border border-white/[0.08] hover:text-white/80 hover:bg-white/[0.08]'
+                  }`}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Row 2: Type dropdown + file + send */}
+            <div className="flex items-center justify-between">
+              {/* Left: Prompt Type & File Upload */}
+              <div className="flex items-center gap-2">
+                {/* Prompt Type Dropdown */}
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                    className="flex items-center gap-1.5 h-8 px-3 rounded-xl text-xs font-medium text-white/70 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] hover:border-white/[0.2] transition-all"
                   >
-                    {(Object.keys(PROMPT_TYPE_CONFIG) as PromptType[]).map((type) => (
-                      <button
-                        key={type}
-                        onClick={() => {
-                          setPromptType(type)
-                          setShowTypeDropdown(false)
-                        }}
-                        className={`w-full px-3 py-1.5 text-left text-[10px] transition-colors flex items-center justify-between ${promptType === type
-                            ? 'bg-purple-500/15 text-white'
-                            : 'text-white/70 hover:bg-white/[0.05] hover:text-white'
-                          }`}
-                      >
-                        <div>
-                          <span className="font-medium">{PROMPT_TYPE_CONFIG[type].label}</span>
-                          <p className="text-[9px] text-white/40 mt-0">{PROMPT_TYPE_CONFIG[type].hint}</p>
-                        </div>
-                        {promptType === type && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                    <span className="text-white/50">Type:</span>
+                    <span className="text-white/90">{PROMPT_TYPE_CONFIG[promptType].label}</span>
+                    <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform ${showTypeDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Dropdown Menu - Opens Downward */}
+                  {showTypeDropdown && (
+                    <div
+                      className="absolute top-full left-0 mt-2 min-w-[220px] max-h-[280px] overflow-y-auto rounded-xl overflow-hidden z-[9999]"
+                      style={{
+                        background: 'rgba(15, 15, 25, 0.98)',
+                        border: '1px solid rgba(139, 92, 246, 0.25)',
+                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+                      }}
+                    >
+                      {(Object.keys(PROMPT_TYPE_CONFIG) as PromptType[]).map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => {
+                            setPromptType(type)
+                            setShowTypeDropdown(false)
+                          }}
+                          className={`w-full px-3 py-1.5 text-left text-[10px] transition-colors flex items-center justify-between ${promptType === type
+                              ? 'bg-purple-500/15 text-white'
+                              : 'text-white/70 hover:bg-white/[0.05] hover:text-white'
+                            }`}
+                        >
+                          <div>
+                            <span className="font-medium">{PROMPT_TYPE_CONFIG[type].label}</span>
+                            <p className="text-[9px] text-white/40 mt-0">{PROMPT_TYPE_CONFIG[type].hint}</p>
+                          </div>
+                          {promptType === type && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* File Upload Button */}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".txt,.md,.csv,.json,.log"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  className="flex items-center justify-center w-8 h-8 rounded-xl text-white/50 hover:text-white/80 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] hover:border-white/[0.2] transition-all"
+                  title="Upload context file"
+                >
+                  <PaperclipIcon className="w-4 h-4" />
+                </button>
               </div>
 
-              {/* File Upload Button */}
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".txt,.md,.csv,.json,.log"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-              <button
-                onClick={() => fileRef.current?.click()}
-                className="flex items-center justify-center w-9 h-9 rounded-xl text-white/50 hover:text-white/80 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] hover:border-white/[0.2] transition-all"
-                title="Upload context file"
-              >
-                <PaperclipIcon className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Right: Character count & Send Button */}
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-white/30 hidden sm:inline">
-                {input.length > 0 ? `${input.length} chars` : 'Ctrl+Enter'}
-              </span>
-              <button
-                onClick={() => generate()}
-                disabled={loading || input.trim().length < 5}
-                className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-purple-500 to-violet-600 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/60 hover:scale-[1.02] active:scale-95 transition-all duration-200 disabled:opacity-40 disabled:pointer-events-none disabled:scale-100"
-              >
-                {loading ? (
-                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.3" />
-                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                  </svg>
-                ) : (
-                  <SendIcon className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+              {/* Right: Character count & Send Button */}
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-white/30 hidden sm:inline">
+                  {input.length > 0 ? `${input.length} chars` : 'Ctrl+Enter'}
+                </span>
+                <button
+                  onClick={() => generate()}
+                  disabled={loading || input.trim().length < 5}
+                  className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-purple-500 to-violet-600 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/60 hover:scale-[1.02] active:scale-95 transition-all duration-200 disabled:opacity-40 disabled:pointer-events-none disabled:scale-100"
+                >
+                  {loading ? (
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.3" />
+                      <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                  ) : (
+                    <SendIcon className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>{/* End Row 2 */}
+          </div>{/* End Bottom Bar */}
+        </div>{/* End Main Input Container */}
 
         {/* Example Chips - Centered Below */}
         <div className="flex flex-wrap gap-2 mt-5 justify-center">
