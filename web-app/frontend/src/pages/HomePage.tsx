@@ -314,6 +314,16 @@ function AIGenerator() {
         >
           {/* Subtle glowing edge effect inside the box */}
           <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%)' }} />
+          {/* Inner dim overlay: hides textarea text when a panel is open so it doesn't bleed through */}
+          {(showTypeDropdown || showOptionsPanel) && (
+            <div
+              className="absolute inset-0 rounded-3xl z-10"
+              style={{
+                background: 'rgba(10, 10, 20, 0.85)',
+                backdropFilter: 'blur(4px)',
+              }}
+            />
+          )}
           {/* Textarea */}
           <textarea
             ref={textareaRef}
@@ -341,7 +351,7 @@ function AIGenerator() {
           )}
 
           {/* Bottom Bar - single clean row */}
-          <div className="absolute bottom-0 left-0 right-0 h-14 px-3 flex items-center justify-between"
+          <div className="absolute bottom-0 left-0 right-0 h-14 px-3 flex items-center justify-between z-20"
             style={{ background: 'linear-gradient(to top, var(--bg, rgba(0,0,0,0.4)) 0%, transparent 100%)' }}
           >
             {/* Left: Type dropdown + file + OPTIONS BUTTON */}
