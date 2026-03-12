@@ -5,59 +5,6 @@ import { TemplateCard } from '../components/TemplateCard'
 import { Link } from 'react-router-dom'
 import PromptHistory, { HistoryItem, saveToHistory } from '../components/PromptHistory'
 import { QualityScoreMini } from '../components/QualityScore'
-
-// ── Hooks ───────────────────────────────────────────────────────────────────
-
-function useMouseTilt(intensity = 10) {
-  const [tilt, setTilt] = useState({ x: 0, y: 0 })
-  
-  useEffect(() => {
-    let targetX = 0
-    let targetY = 0
-    let currentX = 0
-    let currentY = 0
-    let animFrame: number
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (window.innerWidth < 768 || document.documentElement.getAttribute('data-theme') !== 'dark') {
-        targetX = 0
-        targetY = 0
-        return
-      }
-      const cx = window.innerWidth / 2
-      const cy = window.innerHeight / 2
-      targetX = ((e.clientY - cy) / cy) * -intensity
-      targetY = ((e.clientX - cx) / cx) * intensity
-    }
-
-    const animate = () => {
-      if (window.innerWidth < 768 || document.documentElement.getAttribute('data-theme') !== 'dark') {
-        targetX = 0
-        targetY = 0
-      }
-      // Smooth lerp (linear interpolation) for lag effect
-      currentX += (targetX - currentX) * 0.08
-      currentY += (targetY - currentY) * 0.08
-      
-      // Set state if there's any noticeable change
-      if (Math.abs(currentX - targetX) > 0.01 || Math.abs(currentY - targetY) > 0.01 || currentX !== 0 || currentY !== 0) {
-        setTilt({ x: currentX, y: currentY })
-      }
-      animFrame = requestAnimationFrame(animate)
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    animFrame = requestAnimationFrame(animate)
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      cancelAnimationFrame(animFrame)
-    }
-  }, [intensity])
-
-  return tilt
-}
-
 // ── AI Prompt Generator ─────────────────────────────────────────────────────
 
 type PromptType =
@@ -581,7 +528,6 @@ function TemplatesPreview({ templates }: { templates: Template[] }) {
 
 export function HomePage() {
   const [templates, setTemplates] = useState<Template[]>([])
-  const tilt = useMouseTilt(10)
 
   useEffect(() => {
     api.templates.list().then(setTemplates).catch(() => { })
@@ -659,17 +605,11 @@ export function HomePage() {
         </div>
 
         {/* Headline - Bigger, bolder, centered */}
-        <div style={{ perspective: '800px' }}>
-          <h1
+        <div style={{ perspective: '1000px' }}>
+          <h1 
             className="interactive-hover-text text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] mb-6 animate-slide-up"
             onMouseMove={handleHeroMouseMove}
             onMouseLeave={handleHeroMouseLeave}
-            style={{
-              transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-              transformStyle: 'preserve-3d',
-              willChange: 'transform',
-              display: 'inline-block',
-            }}
           >
             <span className="text-white pointer-events-none">Any idea.</span>
             <br />
