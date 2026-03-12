@@ -285,6 +285,19 @@ function AIGenerator() {
     <>
       <PromptHistory onLoad={handleLoadFromHistory} />
 
+      {/* Full-page backdrop — blurs and dims page when any panel is open */}
+      {(showTypeDropdown || showOptionsPanel) && (
+        <div
+          onClick={() => { setShowTypeDropdown(false); setShowOptionsPanel(false) }}
+          className="fixed inset-0 z-[9998]"
+          style={{
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            background: 'rgba(0, 0, 0, 0.55)',
+          }}
+        />
+      )}
+
       <div className="w-full max-w-3xl mx-auto">
         {/* Main Input Container */}
         <div
@@ -295,6 +308,8 @@ function AIGenerator() {
             boxShadow: loading
               ? '0 0 80px rgba(139, 92, 246, 0.4), inset 0 0 20px rgba(139, 92, 246, 0.1)'
               : '0 4px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+            position: 'relative',
+            zIndex: (showTypeDropdown || showOptionsPanel) ? 9999 : 1,
           }}
         >
           {/* Subtle glowing edge effect inside the box */}
