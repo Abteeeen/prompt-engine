@@ -118,6 +118,7 @@ function AIGenerator() {
   const [promptType, setPromptType] = useState<PromptType>('auto')
   const [showTypeDropdown, setShowTypeDropdown] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
+  const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const resultRef = useRef<HTMLDivElement>(null)
@@ -149,6 +150,7 @@ function AIGenerator() {
     setLoading(true)
     setError('')
     setResult(null)
+    setFeedbackGiven(null)
     try {
       const data = await api.ai.generate(req)
       setResult(data)
@@ -180,6 +182,22 @@ function AIGenerator() {
     if (e.key === 'Enter' && !e.shiftKey && (e.metaKey || e.ctrlKey)) {
       e.preventDefault()
       generate()
+    }
+  }
+
+  const handleFeedback = async (rating: 'up' | 'down') => {
+    if (!result || feedbackGiven) return
+    setFeedbackGiven(rating)
+    if (rating === 'up') {
+      try {
+        await fetch('http://localhost:3000/api/ai/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ request: input, prompt: result.prompt, rating })
+        })
+      } catch (err) {
+        console.error('Feedback failed', err)
+      }
     }
   }
 

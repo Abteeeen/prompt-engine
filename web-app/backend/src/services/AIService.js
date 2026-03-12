@@ -1,5 +1,57 @@
 import logger from '../utils/logger.js';
 import { loadTemplates } from './TemplateService.js';
+import { createClient } from '@supabase/supabase-js';
+import { pipeline } from '@xenova/transformers';
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
+
+let extractor = null;
+async function getExtractor() {
+  if (!extractor) {
+    extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+  }
+  return extractor;
+}
+
+// Level 3: Tavily Search
+async function tavilySearch(query) {
+  try {
+    const res = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: TAVILY_API_KEY, query, search_depth: 'basic', include_answer: true, max_results: 3 })
+    });
+    const data = await res.json();
+    if (data.answer) return data.answer;
+    return data.results ? data.results.map(r => r.content).join('\n') : '';
+  } catch (err) {
+    logger.warn('Tavily search error:', { error: err.message });
+    return '';
+  }
+}
+
+// Level 2: Supabase RAG
+async function getSupabaseContext(userRequest) {
+  try {
+    const fn = await getExtractor();
+    const output = await fn(userRequest, { pooling: 'mean', normalize: true });
+    const embedding = Array.from(output.data);
+    
+    const { data, error } = await supabase.rpc('match_prompts', {
+      query_embedding: embedding,
+      match_threshold: 0.5,
+      match_count: 2
+    });
+    
+    if (data && data.length > 0) {
+      return data.map(d => `User Idea: ${d.user_idea}\nExpert Prompt: ${d.perfect_prompt}`).join('\n\n');
+    }
+  } catch (err) {
+    logger.warn('Supabase RAG error:', { error: err.message });
+  }
+  return '';
+}
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = 'llama-3.3-70b-versatile';
@@ -707,42 +759,40 @@ export async function generateWithAI(userRequest) {
   }
 
   try {
-    // Use specialized image system prompt for image requests
+    // Phase 1: Context Gathering (Web Search + Supabase RAG)
+    const [webContext, ragContext] = await Promise.all([
+      tavilySearch(userRequest),
+      getSupabaseContext(userRequest)
+    ]);
+
+    let augmentedRequest = userRequest;
+    if (webContext) augmentedRequest += `\n\nLIVE SEARCH CONTEXT:\n${webContext}`;
+
+    // Agent A: Researcher (Analyzes idea)
+    const researcherPrompt = `You are a Strategic Researcher. Analyze this request and provide a strict 3-point strategy for writing an AI prompt for it. Include target audience, constraints, and format. Only output the strategy.`;
+    const researcherData = await callGroq(augmentedRequest, researcherPrompt);
+    const strategy = researcherData.choices?.[0]?.message?.content?.trim();
+
+    // Agent B: Drafter
     const systemPrompt = isImageRequest 
       ? IMAGE_SYSTEM_PROMPT 
       : buildSystemPrompt(detectedDomain, detectedType);
 
-    const data = await callGroq(userRequest, systemPrompt);
-    const text = data.choices?.[0]?.message?.content?.trim();
-    if (!text) throw new Error('Empty response from AI');
+    let drafterInput = `USER REQUEST:\n${augmentedRequest}\n\nRESEARCHER STRATEGY:\n${strategy}`;
+    if (ragContext) drafterInput += `\n\nHIGHLY SUCCESSFUL RAG EXAMPLES:\n${ragContext}`;
 
-    // Auto retry if quality is low
-    const wordCount = text.split(' ').length;
-    const hasRole = /role|you are/i.test(text);
-    const hasTask = /task|objective|goal/i.test(text);
-    const isImageType = isImageRequest;
+    const draftData = await callGroq(drafterInput, systemPrompt);
+    let draftText = draftData.choices?.[0]?.message?.content?.trim();
+    if (!draftText) throw new Error('Empty draft response from AI');
 
-    if (!isImageType && (wordCount < 80 || (!hasRole && !hasTask))) {
-      logger.debug('Low quality detected, retrying with stricter prompt');
-      const retryData = await callGroq(
-        userRequest + '\n\nSTRICT: Response MUST include ROLE, TASK, REQUIREMENTS sections. Minimum 200 words. Apply COSTAR framework.',
-        systemPrompt
-      );
-      const retryText = retryData.choices?.[0]?.message?.content?.trim();
-      if (retryText && retryText.split(' ').length > wordCount) {
-        return {
-          prompt: retryText,
-          model: MODEL,
-          source: 'groq',
-          domain: detectedDomain,
-          detectedType: isImageRequest ? 'image' : detectedType,
-        };
-      }
-    }
+    // Agent C: Critic (Grades and Refines)
+    const criticPrompt = `You are an Expert Prompt Critic. Review this draft AI prompt. If it scores 9/10 or 10/10 for specificity, constraints, and format, return EXACTLY the same prompt. If < 9/10, rewrite it to be bulletproof. OUTPUT ONLY THE FINAL PROMPT, no preamble.`;
+    const criticData = await callGroq(draftText, criticPrompt);
+    let text = criticData.choices?.[0]?.message?.content?.trim();
+    if (!text || text.length < 50) text = draftText; // Fallback if critic fails
 
-    logger.debug('AI prompt generated', {
+    logger.debug('AI prompt generated by 3-agent pipeline', {
       model: MODEL,
-      tokens: data.usage?.total_tokens,
       domain: detectedDomain || 'generic',
       type: isImageRequest ? 'image' : detectedType,
     });
