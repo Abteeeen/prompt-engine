@@ -30,21 +30,6 @@ export function Header() {
 
   return (
     <>
-      {/* Separated Logo - Static on mobile (top of page), fixed on desktop */}
-      <div className="absolute md:fixed top-6 left-4 md:left-8 z-[60] pointer-events-auto">
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="relative">
-            <img
-              src="/logo.png"
-              alt="Prompt Engine"
-              className="w-10 h-10 object-cover logo-symbol"
-            />
-          </div>
-          <span className="logo-text gradient-text ml-1" style={{ WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'inline-block' }}>
-            Prompt Engine
-          </span>
-        </Link>
-      </div>
 
       {/* Nav Bar - Center/Right, fades on scroll */}
       <header className={`fixed top-4 left-0 right-0 z-50 flex justify-end md:justify-center pointer-events-none transition-all duration-500 ease-in-out transform ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
