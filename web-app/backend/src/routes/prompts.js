@@ -4,6 +4,7 @@ import { scorePrompt } from '../services/QualityScorerService.js';
 import { trackEvent } from '../services/AnalyticsService.js';
 import { requireAuth } from '../middleware/auth.js';
 import { query } from '../models/database.js';
+import { ingestPrompt } from '../services/AIService.js';
 
 const router = Router();
 
@@ -115,6 +116,28 @@ router.post('/:id/rate', requireAuth, async (req, res) => {
     return res.status(404).json({ error: 'Prompt not found.' });
   }
   res.json({ success: true });
+});
+
+// POST /api/prompts/seed — used by n8n to ingest new high-quality prompts
+router.post('/seed', async (req, res) => {
+  const seedKey = req.headers['x-seed-key'];
+  const masterKey = process.env.SEED_API_KEY || 'development_seed_key_123';
+  
+  if (!seedKey || seedKey !== masterKey) {
+    return res.status(401).json({ error: 'Unauthorized seed attempt.' });
+  }
+
+  const { user_idea, perfect_prompt, domain } = req.body;
+  if (!user_idea || !perfect_prompt) {
+    return res.status(400).json({ error: 'user_idea and perfect_prompt are required.' });
+  }
+
+  try {
+    await ingestPrompt({ user_idea, perfect_prompt, domain });
+    res.json({ success: true, message: 'Prompt ingested and embedded successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

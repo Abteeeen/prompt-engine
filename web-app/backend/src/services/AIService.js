@@ -893,3 +893,34 @@ function emergencyFallback(userRequest, isImageRequest = false) {
   };
 }
 
+/**
+ * Ingests a new high-quality prompt into the Supabase knowledge base.
+ */
+export async function ingestPrompt({ user_idea, perfect_prompt, domain }) {
+  if (!supabase) {
+    throw new Error('Supabase client not initialized');
+  }
+
+  try {
+    const fn = await getExtractor();
+    const output = await fn(user_idea, { pooling: 'mean', normalize: true });
+    const embedding = Array.from(output.data);
+
+    const { data, error } = await supabase.from('gold_standard_prompts').insert([
+      {
+        user_idea,
+        perfect_prompt,
+        domain: domain || 'general',
+        embedding
+      }
+    ]);
+
+    if (error) throw error;
+    logger.info('Prompt ingested successfully via seed API', { user_idea });
+    return { success: true };
+  } catch (err) {
+    logger.error('Prompt ingestion failed:', { error: err.message });
+    throw err;
+  }
+}
+
