@@ -284,51 +284,60 @@
 
   /* ------------------- LOGO ANIMATIONS ------------------- */
   
+  /* Hide logo when history modal is open */
+  body.history-open .logo-symbol,
+  body.history-open .logo-text {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
   .logo-symbol {
     transition: all 0.5s ease;
     transform-origin: center bottom;
-    animation: logo-tilt 4s ease-in-out infinite;
   }
   
-  /* Default Theme (Thunder) */
+  /* Default Theme (Ice Melting) */
   :root[data-theme="default"] .logo-symbol,
   :root:not([data-theme="dark"]):not([data-theme="light"]) .logo-symbol {
-    animation: logo-tilt 4s ease-in-out infinite, iced-color-shift 8s linear infinite;
-    box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
-    border: 2px solid rgba(255,255,255,0.8);
-    border-radius: 12px;
+    animation: ice-melt 5s ease-in-out infinite;
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+    border: 2px solid rgba(255,255,255,0.7);
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, transparent 100%);
   }
   
   :root[data-theme="default"] .logo-text,
   :root:not([data-theme="dark"]):not([data-theme="light"]) .logo-text {
     color: #F0F0FF;
-    text-shadow: 0 0 10px rgba(124, 58, 237, 0.8);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    transition: opacity 0.3s ease;
   }
   
-  /* Dark Theme (Retro 90s) */
+  /* Dark Theme (Retro 90s Blocky) */
   :root[data-theme="dark"] .logo-symbol {
     filter: grayscale(100%) contrast(1.5);
-    border: 2px solid #fff;
+    border: 3px solid #fff;
     border-radius: 0;
-    box-shadow: 4px 4px 0px #fff;
-    animation: logo-tilt-retro 2s steps(4) infinite;
+    box-shadow: 4px 4px 0px #555;
+    animation: none; 
   }
   
   :root[data-theme="dark"] .logo-text {
     font-family: monospace, sans-serif;
     color: #fff;
     letter-spacing: 2px;
-    text-shadow: 2px 2px 0px #555;
+    text-shadow: 3px 3px 0px #333;
     text-transform: uppercase;
+    transition: opacity 0.3s ease;
   }
   
-  /* Light Theme (Creative/Sunlight) */
+  /* Light Theme (Fire) */
   :root[data-theme="light"] .logo-symbol {
     border-radius: 50%;
-    border: 3px solid #EA580C;
-    box-shadow: 0 0 30px rgba(234, 88, 12, 0.6), inset 0 0 10px rgba(255,255,255,0.8);
-    animation: logo-spin-pulse 6s ease-in-out infinite;
-    filter: sepia(0.5) hue-rotate(-30deg) saturate(2);
+    border: 2px solid #EA580C;
+    background: radial-gradient(circle, #fcd34d 0%, #ea580c 50%, transparent 100%);
+    box-shadow: 0 0 20px #fcd34d, 0 0 40px #ea580c;
+    animation: fire-flicker 1.5s infinite alternate;
   }
   
   :root[data-theme="light"] .logo-text {
@@ -339,6 +348,7 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     filter: drop-shadow(0 2px 4px rgba(234, 88, 12, 0.2));
+    transition: opacity 0.3s ease;
   }
 
   /* Dr Strange 3D Cracking & Suction Animation */
@@ -408,27 +418,47 @@
   }
 }
 
-@keyframes logo-tilt {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-8deg); }
-  75% { transform: rotate(8deg); }
+@keyframes ice-melt {
+  0%, 100% { 
+    border-radius: 8px; 
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.4); 
+  }
+  40% { 
+    border-bottom-right-radius: 20px; 
+    border-bottom-left-radius: 12px;
+    box-shadow: 0 15px 25px rgba(6, 182, 212, 0.5), 0 30px 10px -15px rgba(255,255,255,0.4); 
+  }
+  60% {
+    border-bottom-right-radius: 8px; 
+    border-bottom-left-radius: 8px;
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.4), 0 40px 10px -20px transparent;
+  }
 }
 
-@keyframes logo-tilt-retro {
-  0% { transform: rotate(0deg); }
-  50% { transform: rotate(-10deg); }
-  100% { transform: rotate(10deg); }
+@keyframes fire-flicker {
+  0% { transform: scale(1); box-shadow: 0 0 20px #fcd34d, 0 0 30px #ea580c; }
+  50% { transform: scale(1.02) translateY(-2px); box-shadow: 0 0 25px #fcd34d, 0 -5px 40px #ea580c, 0 -15px 20px #dc2626; }
+  100% { transform: scale(1); box-shadow: 0 0 20px #fcd34d, 0 0 35px #ea580c; }
 }
 
-@keyframes logo-spin-pulse {
-  0%, 100% { transform: scale(1) rotate(0deg); }
-  50% { transform: scale(1.1) rotate(10deg); box-shadow: 0 0 40px rgba(234, 88, 12, 0.8); }
+/* Scroll Reveal Classes */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.scroll-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-@keyframes iced-color-shift {
-  0% { filter: hue-rotate(0deg) brightness(1.2); }
-  50% { filter: hue-rotate(180deg) brightness(1.5); box-shadow: 0 0 30px rgba(6, 182, 212, 0.8); }
-  100% { filter: hue-rotate(360deg) brightness(1.2); }
+/* Hero Text Interactive Hover */
+.interactive-hover-text {
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-style: preserve-3d;
+  display: inline-block;
+  cursor: default;
 }
 
 @layer utilities {

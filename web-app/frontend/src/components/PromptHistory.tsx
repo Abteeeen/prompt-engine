@@ -213,6 +213,16 @@ export default function PromptHistory({ onLoad }: PromptHistoryProps) {
     return () => window.removeEventListener('storage', handleStorage)
   }, [loadHistory])
 
+  // Hide the logo and other fixed floating elements globally when history modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('history-open')
+    } else {
+      document.body.classList.remove('history-open')
+    }
+    return () => document.body.classList.remove('history-open')
+  }, [isOpen])
+
   const handleDelete = (id: number) => {
     const updated = history.filter(item => item.id !== id)
     setHistory(updated)

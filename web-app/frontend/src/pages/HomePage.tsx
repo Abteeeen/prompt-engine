@@ -471,7 +471,7 @@ const HOW_TO = [
 
 function HowToUse() {
   return (
-    <section className="max-w-4xl mx-auto px-6 py-32">
+    <section className="max-w-4xl mx-auto px-6 py-32 scroll-reveal">
       <div className="text-center mb-12">
         <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-3">How it works</p>
         <h2 className="text-2xl sm:text-3xl font-black text-white">Three steps to a perfect prompt</h2>
@@ -501,7 +501,7 @@ function HowToUse() {
 function TemplatesPreview({ templates }: { templates: Template[] }) {
   if (!templates.length) return null
   return (
-    <section className="max-w-6xl mx-auto px-6 pt-8 pb-32">
+    <section className="max-w-6xl mx-auto px-6 pt-8 pb-32 scroll-reveal">
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Domain templates</p>
@@ -532,7 +532,33 @@ export function HomePage() {
   useEffect(() => {
     api.templates.list().then(setTemplates).catch(() => { })
     api.analytics.track('page_view', undefined, { page: 'home' })
+    
+    // Setup Scroll Reveal
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible')
+          }
+        })
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+    )
+    
+    document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el))
+    return () => observer.disconnect()
   }, [])
+
+  // Interactive 3D Hover Effect for Hero Text
+  const handleHeroMouseMove = (e: React.MouseEvent<HTMLHeadingElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect()
+    const x = (e.clientX - left) / width - 0.5
+    const y = (e.clientY - top) / height - 0.5
+    e.currentTarget.style.transform = `scale(1.02) perspective(1000px) rotateY(${x * 15}deg) rotateX(${-y * 15}deg) translateZ(10px)`
+  }
+  const handleHeroMouseLeave = (e: React.MouseEvent<HTMLHeadingElement>) => {
+    e.currentTarget.style.transform = `scale(1) perspective(1000px) rotateY(0deg) rotateX(0deg) translateZ(0)`
+  }
 
   return (
     <div className="min-h-screen">
@@ -577,11 +603,17 @@ export function HomePage() {
         </div>
 
         {/* Headline - Bigger, bolder, centered */}
-        <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] mb-6 animate-slide-up">
-          <span className="text-white">Any idea.</span>
-          <br />
-          <span className="gradient-text">Perfect prompt.</span>
-        </h1>
+        <div style={{ perspective: '1000px' }}>
+          <h1 
+            className="interactive-hover-text text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] mb-6 animate-slide-up"
+            onMouseMove={handleHeroMouseMove}
+            onMouseLeave={handleHeroMouseLeave}
+          >
+            <span className="text-white pointer-events-none">Any idea.</span>
+            <br />
+            <span className="gradient-text pointer-events-none">Perfect prompt.</span>
+          </h1>
+        </div>
 
         {/* Subtitle */}
         <p className="text-sm sm:text-base text-white/50 max-w-md mx-auto mb-16 animate-slide-up" style={{ animationDelay: '0.1s' }}>
@@ -601,7 +633,7 @@ export function HomePage() {
       <TemplatesPreview templates={templates} />
 
       {/* Let's Connect Footer (Griflan Inspired) */}
-      <section className="relative px-6 py-32 mt-20 border-t border-[var(--glass-border)] bg-[var(--bg-2)] overflow-hidden">
+      <section className="relative px-6 py-32 mt-20 border-t border-[var(--glass-border)] bg-[var(--bg-2)] overflow-hidden scroll-reveal">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-end gap-12 relative z-10">
           
           {/* Left Side: Massive Text Link */}
