@@ -27,13 +27,7 @@ export function ThemeToggle({ variant = 'desktop' }: { variant?: 'mobile' | 'des
     if (newTheme === 'default') {
       animationClass = 'theme-transition-active'
       timeout = 1200
-    } else if (newTheme === 'dark') {
-      animationClass = 'theme-batman-active'
-      timeout = 400
-    } else if (newTheme === 'light') {
-      animationClass = 'theme-wakeup-active'
-      timeout = 400
-    }
+    } // Dark and Light are now instant (0 timeout)
 
     if (animationClass) {
       document.body.classList.add(animationClass)

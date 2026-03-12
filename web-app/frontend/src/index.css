@@ -107,8 +107,37 @@
     border-color: rgba(234, 88, 12, 0.15) !important;
   }
   :root[data-theme="light"] .glass {
-    background: rgba(255, 245, 235, 0.6) !important;
+    background: rgba(255, 255, 255, 0.5) !important;
     border-color: rgba(234, 88, 12, 0.15) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  
+  :root[data-theme="light"] .glass:hover {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border-color: rgba(234, 88, 12, 0.25) !important;
+    box-shadow: 0 12px 30px rgba(234, 88, 12, 0.08) !important;
+    transform: translateY(-2px) !important;
+  }
+
+  :root[data-theme="light"] button,
+  :root[data-theme="light"] a {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  :root[data-theme="light"] button:hover:not(:disabled),
+  :root[data-theme="light"] a:hover {
+    transform: translateY(-1px) scale(1.02) !important;
+  }
+
+  :root[data-theme="light"] .input-base {
+    background: rgba(255, 255, 255, 0.6) !important;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  :root[data-theme="light"] .input-base:focus {
+    background: rgba(255, 255, 255, 0.95) !important;
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15) !important;
+    transform: translateY(-1px) !important;
   }
 
   html {
@@ -271,56 +300,6 @@
     animation: crack-overlay 1.2s cubic-bezier(0.19, 1, 0.22, 1) forwards;
     mix-blend-mode: screen;
   }
-
-  /* Batman Dark Mode Animation (Split Second) */
-  .theme-batman-active {
-    animation: batman-shake 0.4s ease-in-out forwards;
-    position: relative;
-    overflow: hidden;
-  }
-  .theme-batman-active::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    pointer-events: none;
-    background: #000;
-    animation: bat-swoop 0.4s ease-in-out forwards;
-  }
-
-  /* Wake Up Light Mode Animation (Split Second) */
-  .theme-wakeup-active {
-    position: relative;
-    overflow: hidden;
-  }
-  .theme-wakeup-active::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    pointer-events: none;
-    background: #FFF8F0;
-    animation: eye-open 0.4s ease-in-out forwards;
-  }
-}
-
-@keyframes batman-shake {
-  0% { transform: scale(1); filter: contrast(1); }
-  50% { transform: scale(0.98); filter: contrast(1.5); }
-  100% { transform: scale(1); filter: contrast(1); }
-}
-
-@keyframes bat-swoop {
-  0% { clip-path: circle(0% at 50% -20%); opacity: 0; }
-  30% { clip-path: circle(150% at 50% 10%); opacity: 1; }
-  70% { clip-path: circle(150% at 50% 100%); opacity: 1; }
-  100% { clip-path: circle(0% at 50% 120%); opacity: 0; }
-}
-
-@keyframes eye-open {
-  0% { clip-path: ellipse(100% 0% at 50% 50%); opacity: 1; }
-  50% { clip-path: ellipse(100% 100% at 50% 50%); opacity: 1; }
-  100% { clip-path: ellipse(100% 100% at 50% 50%); opacity: 0; }
 }
 
 @keyframes dr-strange-suck {
