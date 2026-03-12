@@ -40,9 +40,8 @@ export function Header() {
               className="w-10 h-10 object-cover logo-symbol"
             />
           </div>
-          <span className="text-lg leading-tight flex flex-col logo-text">
-            <span>Prompt</span>
-            <span className="text-sm">Engine</span>
+          <span className="logo-text gradient-text ml-1" style={{ WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'inline-block' }}>
+            Prompt Engine
           </span>
         </Link>
       </div>

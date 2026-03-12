@@ -677,21 +677,25 @@ export function HomePage() {
 
               {/* Right Side: Socials & Contact Info */}
               <div className="w-full md:w-1/2 flex flex-col sm:flex-row gap-6 justify-center md:justify-end">
-                <div className="glass p-6 rounded-2xl flex-1 max-w-[200px]" style={{ background: 'rgba(0,0,0,0.4)', borderColor: 'rgba(255,255,255,0.05)' }}>
+                <div className="glass p-6 rounded-2xl flex-1 max-w-full sm:max-w-[200px] flex flex-col items-center sm:items-start text-center sm:text-left" style={{ background: 'rgba(0,0,0,0.4)', borderColor: 'rgba(255,255,255,0.05)' }}>
                   <p className="text-xs text-[var(--muted)] uppercase tracking-widest mb-4 font-bold">Socials</p>
-                  <div className="flex flex-col gap-3">
-                    <a href="https://www.linkedin.com/in/abhiram-anil-092946223/" target="_blank" rel="noreferrer" className="text-sm font-medium text-[var(--text)] hover:text-white transition-colors flex items-center justify-between group">
-                      LinkedIn <span className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[var(--accent)]">↗</span>
+                  <div className="flex flex-col gap-4 sm:gap-3 w-full">
+                    <a href="https://www.linkedin.com/in/abhiram-anil-092946223/" target="_blank" rel="noreferrer" className="text-sm font-medium text-[var(--text)] hover:text-white transition-colors flex items-center justify-center sm:justify-start group w-full">
+                      <svg className="w-4 h-4 mr-2 text-[var(--muted)] group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                      LinkedIn 
+                      <span className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[var(--accent)] ml-auto hidden sm:inline-block">↗</span>
                     </a>
-                    <a href="https://www.instagram.com/__ab_10__/" target="_blank" rel="noreferrer" className="text-sm font-medium text-[var(--text)] hover:text-white transition-colors flex items-center justify-between group">
-                      Instagram <span className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[var(--accent)]">↗</span>
+                    <a href="https://www.instagram.com/__ab_10__/" target="_blank" rel="noreferrer" className="text-sm font-medium text-[var(--text)] hover:text-white transition-colors flex items-center justify-center sm:justify-start group w-full">
+                      <svg className="w-4 h-4 mr-2 text-[var(--muted)] group-hover:text-white transition-colors" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                      Instagram 
+                      <span className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[var(--accent)] ml-auto hidden sm:inline-block">↗</span>
                     </a>
                   </div>
                 </div>
 
-                <div className="glass p-6 rounded-2xl flex-1 max-w-[220px]" style={{ background: 'rgba(0,0,0,0.4)', borderColor: 'rgba(255,255,255,0.05)' }}>
+                <div className="glass p-6 rounded-2xl flex-1 max-w-full sm:max-w-[220px] flex flex-col items-center sm:items-start text-center sm:text-left" style={{ background: 'rgba(0,0,0,0.4)', borderColor: 'rgba(255,255,255,0.05)' }}>
                   <p className="text-xs text-[var(--muted)] uppercase tracking-widest mb-4 font-bold">Inquiries</p>
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-4 sm:gap-3 w-full items-center sm:items-start">
                     <a href="mailto:abhiramaanil@gmail.com" className="text-sm font-medium text-[var(--text)] hover:text-white transition-colors truncate block">
                       abhiramaanil@gmail.com
                     </a>

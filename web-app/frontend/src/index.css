@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -296,40 +297,56 @@
     transform-origin: center bottom;
   }
   
-  /* Default Theme (Ice Cube) */
+  /* Default Theme (Lightning & Smoke) */
   :root[data-theme="default"] .logo-symbol,
   :root:not([data-theme="dark"]):not([data-theme="light"]) .logo-symbol {
     position: relative;
-    border-radius: 8px;
+    border-radius: 12px;
     border: 2px solid rgba(255,255,255,0.6);
-    background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(200, 230, 255, 0.1) 100%);
-    box-shadow: inset 0 0 10px rgba(255,255,255,0.8), 0 0 15px rgba(6, 182, 212, 0.5);
-    backdrop-filter: blur(4px);
+    background: transparent;
+    animation: lightning-color-shift 10s infinite;
     overflow: visible;
   }
   
-  /* Water droplet */
+  /* Lightning Strike */
+  :root[data-theme="default"] .logo-symbol::before,
+  :root:not([data-theme="dark"]):not([data-theme="light"]) .logo-symbol::before {
+    content: '⚡';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%) translateZ(0);
+    font-size: 24px;
+    opacity: 0;
+    pointer-events: none;
+    animation: lightning-strike 10s infinite;
+  }
+  
+  /* Fading Smoke */
   :root[data-theme="default"] .logo-symbol::after,
   :root:not([data-theme="dark"]):not([data-theme="light"]) .logo-symbol::after {
-    content: '';
+    content: '☁️';
     position: absolute;
-    bottom: -5px;
+    bottom: -10px;
     left: 50%;
-    width: 6px;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 50% 50% 50% 0;
-    transform: translateX(-50%) rotate(45deg);
-    animation: water-drop 2.5s infinite ease-in;
-    box-shadow: 0 0 5px rgba(6, 182, 212, 0.5);
+    transform: translateX(-50%) scale(0.5);
+    font-size: 24px;
+    opacity: 0;
     pointer-events: none;
+    animation: smoke-rise 10s infinite;
+  }
+  
+  .logo-text {
+    font-family: 'Caveat', cursive;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    transition: opacity 0.3s ease;
   }
   
   :root[data-theme="default"] .logo-text,
   :root:not([data-theme="dark"]):not([data-theme="light"]) .logo-text {
-    color: #F0F0FF;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-    transition: opacity 0.3s ease;
   }
   
   /* Dark Theme (Retro 90s Blocky) */
@@ -449,11 +466,24 @@
   }
 }
 
-@keyframes water-drop {
-  0% { transform: translateX(-50%) rotate(45deg) scale(0); opacity: 0; bottom: 0px; }
-  20% { transform: translateX(-50%) rotate(45deg) scale(1.5); opacity: 1; bottom: -5px; }
-  80% { transform: translateX(-50%) rotate(45deg) scale(1.5); opacity: 0.8; bottom: -40px; }
-  100% { transform: translateX(-50%) rotate(45deg) scale(0.5); opacity: 0; bottom: -50px; }
+@keyframes lightning-color-shift {
+  0%, 100% { filter: hue-rotate(0deg); box-shadow: 0 0 20px rgba(124, 58, 237, 0.5); }
+  25% { filter: hue-rotate(90deg); box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+  50% { filter: hue-rotate(180deg); box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+  75% { filter: hue-rotate(270deg); box-shadow: 0 0 20px rgba(236, 72, 153, 0.5); }
+}
+
+@keyframes lightning-strike {
+  0%, 8%, 12%, 100% { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(1); filter: drop-shadow(0 0 0px #fff); }
+  9% { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1.5); filter: drop-shadow(0 0 20px rgba(255,255,255,0.9)); }
+  10% { opacity: 0; transform: translateX(-50%) translateY(0px) scale(1.5); filter: drop-shadow(0 0 20px rgba(255,255,255,0.9)); }
+  11% { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1.8); filter: drop-shadow(0 0 30px rgba(255,255,255,1)); }
+}
+
+@keyframes smoke-rise {
+  0%, 10% { opacity: 0; transform: translateX(-50%) translateY(0) scale(0.5); filter: blur(2px) grayscale(100%); }
+  15% { opacity: 0.6; transform: translateX(-50%) translateY(-10px) scale(1.2); filter: blur(4px) grayscale(100%); }
+  35%, 100% { opacity: 0; transform: translateX(-50%) translateY(-40px) scale(2.5); filter: blur(8px) grayscale(100%); }
 }
 
 @keyframes literal-fire {
