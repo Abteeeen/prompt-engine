@@ -273,8 +273,8 @@ export default function PromptHistory({ onLoad }: PromptHistoryProps) {
       {/* Floating trigger button */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed left-4 top-1/2 -translate-y-1/2 z-40 flex items-center justify-center w-12 h-12 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] hover:border-purple-500/30 backdrop-blur-sm shadow-lg shadow-black/20 transition-all duration-300 hover:scale-105 active:scale-95 group ${
-          isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12 pointer-events-none'
+        className={`fixed left-4 top-4 z-40 flex items-center justify-center w-12 h-12 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] hover:border-purple-500/30 backdrop-blur-sm shadow-lg shadow-black/20 transition-all duration-300 hover:scale-105 active:scale-95 group ${
+          isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-12 pointer-events-none'
         }`}
         title="Prompt History"
       >
