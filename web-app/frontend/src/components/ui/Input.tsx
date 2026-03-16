@@ -61,11 +61,19 @@ export function Select({ label, help, error, options, className = '', ...props }
     <FieldWrapper label={label} help={help} error={error}>
       <select
         className={`input-base appearance-none cursor-pointer ${error ? 'border-red-500/50' : ''} ${className}`}
-        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+        style={{ 
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, 
+          backgroundRepeat: 'no-repeat', 
+          backgroundPosition: 'right 12px center' 
+        }}
         {...props}
       >
-        <option value="" disabled>Select...</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
+        <option value="" disabled className="bg-[var(--bg-2)] text-[var(--text)]">Select...</option>
+        {options.map(o => (
+          <option key={o} value={o} className="bg-[var(--bg-2)] text-[var(--text)]">
+            {o}
+          </option>
+        ))}
       </select>
     </FieldWrapper>
   )

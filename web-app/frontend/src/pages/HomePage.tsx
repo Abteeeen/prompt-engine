@@ -670,7 +670,7 @@ function HowToUse() {
 function MostUsedPrompts() {
   const topPrompts = discoverPrompts.slice(0, 5)
   return (
-    <section className="max-w-6xl mx-auto px-6 pt-8 pb-32 scroll-reveal">
+    <section className="max-w-6xl mx-auto px-6 pt-24 pb-12 scroll-reveal">
       <div className="flex items-center justify-between mb-8">
         <div>
           <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Discover Prompts</p>
@@ -717,6 +717,41 @@ function MostUsedPrompts() {
               </div>
             </div>
           </a>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// ── Pro Collection Section ───────────────────────────────────────────────────
+
+function ProCollection({ templates }: { templates: Template[] }) {
+  if (!templates.length) return null
+  
+  // Best 5 for desktop, 4 for mobile
+  const topTemplates = templates.slice(0, 5)
+
+  return (
+    <section className="max-w-6xl mx-auto px-6 pt-12 pb-32 scroll-reveal">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Our Collection</p>
+          <h2 className="text-2xl font-black text-white tracking-tight">Pro Collection</h2>
+        </div>
+        <Link to="/discover" className="text-sm font-bold text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1 shrink-0">
+          View All
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {topTemplates.map((t, i) => (
+          <div 
+            key={t.id} 
+            className={`h-full ${i >= 4 ? 'hidden lg:block' : ''}`}
+          >
+            <PromptCard template={t} />
+          </div>
         ))}
       </div>
     </section>
@@ -832,6 +867,9 @@ export function HomePage() {
 
       {/* Prompts Discovery */}
       <MostUsedPrompts />
+
+      {/* Pro Collection */}
+      <ProCollection templates={templates} />
 
       {/* Let's Connect Footer (Floating Animated Card) */}
       <section className="relative px-6 py-32 mt-10 overflow-hidden bg-transparent">
