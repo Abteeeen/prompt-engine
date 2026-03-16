@@ -6,43 +6,51 @@ interface CategoryStyle {
   icon: React.ReactNode
   gradient: string
   color: string
+  coverImage?: string
 }
 
 const CATEGORY_STYLES: Record<string, CategoryStyle> = {
   Writing: {
     icon: <path d="M12 19l7-7 3 3-7 7-3-3z M18 13l-1.5-1.5 M2 22l5-1 12-12-4-4-12 12-1 5z" />,
     gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-    color: '#fbbf24'
+    color: '#fbbf24',
+    coverImage: '/images/categories/writing.png'
   },
   Development: {
     icon: <path d="M16 18l6-6-6-6 M8 6l-6 6 6 6 M12 4.5l-2 15" />,
     gradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-    color: '#60a5fa'
+    color: '#60a5fa',
+    coverImage: '/images/categories/development.png'
   },
   Research: {
     icon: <><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></>,
     gradient: 'linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)',
-    color: '#2dd4bf'
+    color: '#2dd4bf',
+    coverImage: '/images/categories/research.png'
   },
   Marketing: {
     icon: <><path d="M11 5L6 9H2v6h4l5 4V5z M19.07 4.93a10 10 0 0 1 0 14.14 M15.54 8.46a5 5 0 0 1 0 7.07" /></>,
     gradient: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
-    color: '#f472b6'
+    color: '#f472b6',
+    coverImage: '/images/categories/marketing.png'
   },
   Planning: {
     icon: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><path d="M16 2v4M8 2v4M3 10h18" /></>,
     gradient: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
-    color: '#a78bfa'
+    color: '#a78bfa',
+    coverImage: '/images/categories/planning.png'
   },
-  Multimedia: { // Image equivalent
+  Multimedia: {
     icon: <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z" />,
     gradient: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)',
-    color: '#a78bfa'
+    color: '#a78bfa',
+    coverImage: '/images/categories/multimedia.png'
   },
   Automation: {
     icon: <><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></>,
     gradient: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
-    color: '#34d399'
+    color: '#34d399',
+    coverImage: '/images/categories/automation.png'
   }
 }
 
@@ -100,8 +108,11 @@ export function PromptCard({ template, compact }: Props) {
         className="relative h-32 flex items-center justify-center overflow-hidden"
         style={{ background: style.gradient }}
       >
-        {/* Subtle pattern or overlay */}
-        <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '12px 12px' }} />
+        {style.coverImage ? (
+          <img src={style.coverImage} alt={template.category} className="absolute inset-0 w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-110" />
+        ) : (
+          <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '12px 12px' }} />
+        )}
         
         <div className="relative z-10 p-4 transition-transform duration-500 group-hover:scale-110">
           <svg className="w-12 h-12 text-white/90 drop-shadow-2xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

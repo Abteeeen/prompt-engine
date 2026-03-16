@@ -64,7 +64,7 @@ export function DiscoverPage() {
               )}
               
               <div className="relative z-10 p-4 transition-transform duration-500 group-hover:scale-110">
-                <span className="text-4xl drop-shadow-2xl">{prompt.icon}</span>
+                {/* Emoji removed per user request */}
               </div>
               
               {/* Category Badge on Thumbnail */}

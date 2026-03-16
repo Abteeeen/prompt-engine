@@ -702,7 +702,7 @@ function MostUsedPrompts() {
               ) : (
                 <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '12px 12px' }} />
               )}
-              <span className="relative z-10 text-3xl group-hover:scale-110 transition-transform duration-500">{prompt.icon}</span>
+              {/* Emoji removed per user request */}
             </div>
             <div className="p-3 flex-1 flex flex-col">
               <h3 className="text-[12px] font-bold text-white mb-1 group-hover:text-purple-300 transition-colors line-clamp-1">
