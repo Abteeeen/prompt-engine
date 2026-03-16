@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { getWaveHeight } from '../utils/wavePhysics';
 
 export default function ShipScene() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -20,8 +21,8 @@ export default function ShipScene() {
       2000
     );
     
-    // Initial side-view profile perspective
-    camera.position.set(60, 15, 0); 
+    // Zoom in a bit more (was 60, 15, 0)
+    camera.position.set(45, 12, 0); 
     camera.lookAt(0, 5, 0);
 
     const renderer = new THREE.WebGLRenderer({
@@ -90,8 +91,8 @@ export default function ShipScene() {
     // Interaction Limits (No underground view)
     controls.minPolarAngle = Math.PI / 6;    // Limit top view
     controls.maxPolarAngle = Math.PI / 2.1;  // Limit bottom view (Prevent underground)
-    controls.minDistance = 30;
-    controls.maxDistance = 150;
+    controls.minDistance = 25;
+    controls.maxDistance = 120;
     controls.target.set(0, 5, 0);
     controlsRef.current = controls;
 
@@ -111,11 +112,20 @@ export default function ShipScene() {
             
             const name = mesh.name.toLowerCase();
             
-            // Hide glTF Water to use photorealistic 2D OceanCanvas background
-            if (name.includes('water') || name.includes('ocean') || name.includes('sea') || name.includes('plane')) {
+            // Calculate size for identification
+            const bbox = new THREE.Box3().setFromObject(mesh);
+            const size = bbox.getSize(new THREE.Vector3());
+            
+            // Aggressive Filtering
+            // If the mesh is extremely flat and wide, or has an environment-related name, hide it.
+            const isVeryLargeFlat = (size.x > 50 && size.z > 50 && size.y < 5);
+            const isWater = name.includes('water') || name.includes('ocean') || name.includes('sea') || name.includes('plane') || name.includes('liquid') || name.includes('wave') || name.includes('river');
+            const isEnvironment = name.includes('stand') || name.includes('ground') || name.includes('floor') || name.includes('base') || name.includes('environment') || name.includes('island');
+            
+            if (isWater || isEnvironment || isVeryLargeFlat) {
               mesh.visible = false;
-            } else if (name.includes('stand') || name.includes('ground')) {
-              mesh.visible = false;
+              mesh.castShadow = false;
+              mesh.receiveShadow = false;
             } else {
               mesh.visible = true;
             }
@@ -159,19 +169,20 @@ export default function ShipScene() {
 
       if (shipRef.current) {
         const baseY = shipRef.current.userData.baseY ?? -2;
-        // Calm natural bobbing
-        shipRef.current.position.y = baseY + Math.sin(t * 0.4) * 0.3;
-        shipRef.current.rotation.z = Math.sin(t * 0.3) * 0.015;
-        shipRef.current.rotation.x = Math.sin(t * 0.2) * 0.01;
+        
+        // SYNCHRONIZED PHYSICS WITH 2D WAVES
+        // Use wave layer index 5 (front-most) and screen center x
+        const centerX = window.innerWidth / 2;
+        // The * 20 in the utility matches our standardized getWaveY logic
+        const rawWaveY = getWaveHeight(centerX, t * 20, 5); 
+        
+        // Scale pixel displacement to 3D units (~34px max displacement -> ~1.5 units)
+        const bobDisplacement = rawWaveY * 0.045; 
+        shipRef.current.position.y = baseY + bobDisplacement;
 
-        // Animate Original Water Mesh if found
-        shipRef.current.traverse((child) => {
-          if (child.userData.isWater && (child as THREE.Mesh).isMesh) {
-            const mesh = child as THREE.Mesh;
-            // Simple slow vertex-like modulation
-            mesh.position.y = Math.sin(t * 0.5) * 0.1;
-          }
-        });
+        // Synchronize roll and pitch with wave displacement for "riding the wave" feel
+        shipRef.current.rotation.z = (rawWaveY * 0.0012) + Math.sin(t * 0.5) * 0.01;
+        shipRef.current.rotation.x = Math.cos(t * 0.4) * 0.015;
       }
 
       renderer.render(scene, camera);

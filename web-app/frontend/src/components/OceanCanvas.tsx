@@ -58,7 +58,6 @@ const WAVES: WaveConfig[] = [
 
 export function OceanCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const offsetsRef = useRef<number[]>(new Array(6).fill(0));
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -74,7 +73,9 @@ export function OceanCanvas() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const getWaveY = (x: number, wave: WaveConfig, offset: number, t: number, H: number) => {
+  const getWaveY = (x: number, wave: WaveConfig, t: number, H: number) => {
+    // Standardized wave physics (time * speed matches getWaveHeight utility)
+    const offset = t * wave.speed * 20; 
     return H * wave.baseY
       + Math.sin(x * wave.f + offset) * wave.amp
       + Math.sin(x * wave.f * 1.7 + offset * 1.3) * wave.amp * 0.4
@@ -109,12 +110,9 @@ export function OceanCanvas() {
 
     // STEP 3: PHOTO REALISTIC WATER
     WAVES.forEach((wave, i) => {
-      offsetsRef.current[i] += wave.speed * dt * 2;
-      const offset = offsetsRef.current[i];
-      
       ctx.beginPath();
       for (let x = 0; x <= W + 2; x += 2) {
-        const y = getWaveY(x, wave, offset, t, H);
+        const y = getWaveY(x, wave, t, H);
         if (x === 0) ctx.beginPath(), ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
@@ -133,7 +131,7 @@ export function OceanCanvas() {
       if (i >= WAVES.length - 2) {
         for (let j = 0; j < 20; j++) {
           const x = (W / 20) * j + Math.sin(t + j) * 12;
-          const y = getWaveY(x, wave, offset, t, H);
+          const y = getWaveY(x, wave, t, H);
           
           const foamOp = 0.15 + Math.sin(t * 2.5 + j * 0.8) * 0.1;
           const foamR = 2 + Math.sin(t + j) * 1.5;
