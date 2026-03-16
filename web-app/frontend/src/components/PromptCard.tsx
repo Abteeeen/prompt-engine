@@ -218,9 +218,10 @@ export function PromptCard({ template, prompt, compact }: Props) {
         </p>
 
         <div className="flex items-center justify-between pt-3 border-t border-white/5">
-          <span className="text-[10px] font-bold text-gray-400">
-            {isInternal ? `${(template as any).qualityScore}/30` : `${(prompt as any).uses} uses`} <span className="text-purple-500/50">✦</span>
-          </span>
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
+            <span>{isInternal ? `${(template as any).qualityScore}/30` : `${(prompt as any).uses} uses`}</span>
+            <span className="text-purple-500/50 text-xs">✦</span>
+          </div>
           <span className="text-xs font-bold text-purple-400 group-hover:text-purple-300 transition-colors flex items-center gap-1">
             {actionLabel}
             <svg className="w-3 h-3 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

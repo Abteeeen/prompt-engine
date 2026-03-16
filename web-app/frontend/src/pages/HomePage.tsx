@@ -523,11 +523,11 @@ function AIGenerator() {
 
         {/* Example Chips - Centered Below */}
         <div className="flex flex-wrap gap-2 mt-5 justify-center">
-          {EXAMPLES.map(ex => (
+          {EXAMPLES.map((ex, i) => (
             <button
               key={ex}
               onClick={() => { setInput(ex); generate(ex) }}
-              className="text-xs text-white/40 hover:text-white/70 px-4 py-2 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.15] transition-all"
+              className={`text-xs text-white/40 hover:text-white/70 px-4 py-2 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.15] transition-all ${i >= 2 ? 'hidden sm:block' : ''}`}
             >
               {ex.length > 35 ? ex.slice(0, 35) + '…' : ex}
             </button>
