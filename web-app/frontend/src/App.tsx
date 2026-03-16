@@ -6,7 +6,7 @@ import { HomePage } from './pages/HomePage'
 import { DiscoverPage } from './pages/DiscoverPage'
 import { DiscoverDetailPage } from './pages/DiscoverDetailPage'
 import { GeneratorPage } from './pages/GeneratorPage'
-import { AgentsPage } from './pages/AgentsPage'
+import AgentsPage from './pages/AgentsPage'
 
 // Mobile bottom navigation component
 function MobileNav() {
@@ -108,19 +108,29 @@ function MobileNav() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Layout>
-        <div className="pb-20 md:pb-0">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/agents" element={<AgentsPage />} />
-            <Route path="/discover" element={<DiscoverPage />} />
-            <Route path="/discover/:id" element={<DiscoverDetailPage />} />
-            <Route path="/generate" element={<GeneratorPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-        <MobileNav />
-      </Layout>
+      <Routes>
+        {/* Full-screen immersive Agents page (No Layout) */}
+        <Route path="/agents" element={<AgentsPage />} />
+
+        {/* All other pages with global Layout */}
+        <Route
+          path="*"
+          element={
+            <Layout>
+              <div className="pb-20 md:pb-0">
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/discover" element={<DiscoverPage />} />
+                  <Route path="/discover/:id" element={<DiscoverDetailPage />} />
+                  <Route path="/generate" element={<GeneratorPage />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </div>
+              <MobileNav />
+            </Layout>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   )
 }

@@ -1,180 +1,85 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { removeTealBg } from '../utils/removeTealBg';
 
-export interface CrewMemberData {
+interface Character {
   id: string;
   name: string;
   role: string;
-  description: string;
-  specialty: string;
-  frameWidth: number;
-  frameHeight: number;
-  totalWidth: number; // Width of one full animation row (frames * width)
-  yOffset: number;
-  frames: number;
+  sprite: string;
+  frameW: number;
+  frameH: number;
+  steps: number;
   left: string;
   bottom: string;
-  scale?: number;
+  specialty: string;
 }
 
-export const CREW_DATA: CrewMemberData[] = [
-  {
-    id: 'luffy',
-    name: 'Luffy',
-    role: 'The Idea Agent',
-    description: 'Finds groundbreaking concepts and raw prompt ideas.',
-    specialty: 'Creative Strategy',
-    frameWidth: 256,
-    frameHeight: 256,
-    totalWidth: 1536,
-    yOffset: 1024,   // Row 5 (per subagent)
-    frames: 6,
-    left: 'calc(50% + 140px)',
-    bottom: '220px', // Lowered slightly to sit on deck
-    scale: 1.5
-  },
-  {
-    id: 'zoro',
-    name: 'Zoro',
-    role: 'The Optimizer Agent',
-    description: 'Sharpens prompts for maximum precision and efficiency.',
-    specialty: 'Prompt Engineering',
-    frameWidth: 256,
-    frameHeight: 256,
-    totalWidth: 1536,
-    yOffset: 768,    // Row 4 (per subagent)
-    frames: 6,
-    left: 'calc(50% - 150px)',
-    bottom: '225px',
-    scale: 1.5
-  },
-  {
-    id: 'sanji',
-    name: 'Sanji',
-    role: 'The Writer Agent',
-    description: 'Crafts final copy with perfect creative flavor.',
-    specialty: 'Copywriting',
-    frameWidth: 256,
-    frameHeight: 256,
-    totalWidth: 1536,
-    yOffset: 768,    // Row 4
-    frames: 6,
-    left: 'calc(50% + 60px)',
-    bottom: '225px',
-    scale: 1.5
-  },
-  {
-    id: 'nami',
-    name: 'Nami',
-    role: 'The Research Agent',
-    description: 'Charts the best routes for data and market research.',
-    specialty: 'Market Analysis',
-    frameWidth: 256,
-    frameHeight: 256,
-    totalWidth: 1536,
-    yOffset: 1024,   // Row 5
-    frames: 6,
-    left: 'calc(50% - 15px)',
-    bottom: '440px',
-    scale: 1.3
-  },
-  {
-    id: 'chopper',
-    name: 'Chopper',
-    role: 'The Quality Agent',
-    description: 'Diagnoses prompt health and verifies final scores.',
-    specialty: 'Quality Assurance',
-    frameWidth: 256,
-    frameHeight: 256,
-    totalWidth: 1536,
-    yOffset: 2560,   // Row 11
-    frames: 6,
-    left: 'calc(50% - 60px)',
-    bottom: '225px',
-    scale: 1.2
-  },
-  {
-    id: 'usopp',
-    name: 'Usopp',
-    role: 'The Precision Agent',
-    description: 'Land the perfect shot with SEO and targeting prompts.',
-    specialty: 'SEO Optimization',
-    frameWidth: 256,
-    frameHeight: 256,
-    totalWidth: 1536,
-    yOffset: 768,    // Row 4
-    frames: 6,
-    left: 'calc(50% - 110px)',
-    bottom: '225px',
-    scale: 1.5
-  },
-  {
-    id: 'robin',
-    name: 'Robin',
-    role: 'The Context Agent',
-    description: 'Loads deep domain knowledge and historical context.',
-    specialty: 'Research & Context',
-    frameWidth: 256,
-    frameHeight: 256,
-    totalWidth: 1536,
-    yOffset: 1024,   // Row 5
-    frames: 6,
-    left: 'calc(50% + 50px)', // Aligned with a porthole
-    bottom: '165px',
-  }
+const CREW_DATA: Character[] = [
+  { id: 'luffy', name: 'LUFFY', role: 'The Idea Agent', sprite: '/sprites/luffy.png', frameW: 72, frameH: 80, steps: 4, left: '40%', bottom: '37%', specialty: 'Ideation' },
+  { id: 'zoro', name: 'ZORO', role: 'The Debugger', sprite: '/sprites/zoro.png', frameW: 80, frameH: 85, steps: 4, left: '32%', bottom: '35%', specialty: 'Code Optimization' },
+  { id: 'sanji', name: 'SANJI', role: 'The Creative Chef', sprite: '/sprites/sanji.png', frameW: 75, frameH: 90, steps: 4, left: '58%', bottom: '35%', specialty: 'UI/UX Design' },
+  { id: 'nami', name: 'NAMI', role: 'The SEO Navigator', sprite: '/sprites/nami.png', frameW: 70, frameH: 88, steps: 4, left: '49%', bottom: '54%', specialty: 'Market Analysis' },
+  { id: 'usopp', name: 'USOPP', role: 'The Content Sniper', sprite: '/sprites/usopp.png', frameW: 90, frameH: 85, steps: 4, left: '37%', bottom: '36%', specialty: 'Copywriting' },
+  { id: 'chopper', name: 'CHOPPER', role: 'The Data Doctor', sprite: '/sprites/chopper.png', frameW: 65, frameH: 70, steps: 4, left: '51%', bottom: '36%', specialty: 'Data Processing' },
+  { id: 'robin', name: 'ROBIN', role: 'The Knowledge Archaeologist', sprite: '/sprites/robin.png', frameW: 72, frameH: 95, steps: 4, left: '63%', bottom: '34%', specialty: 'Historical Research' },
 ];
 
-interface CrewSpriteProps {
-  member: CrewMemberData;
-  onClick: (member: CrewMemberData) => void;
-}
+export function CrewSprite({ onSelect }: { onSelect: (c: Character) => void }) {
+  const [processedSprites, setProcessedSprites] = useState<Record<string, string>>({});
 
-export function CrewSprite({ member, onClick }: CrewSpriteProps) {
-  const isRobin = member.id === 'robin';
+  useEffect(() => {
+    CREW_DATA.forEach(async (char) => {
+      const cleanSprite = await removeTealBg(char.sprite);
+      setProcessedSprites(prev => ({ ...prev, [char.id]: cleanSprite }));
+    });
+  }, []);
 
   return (
-    <div 
-      className={`absolute cursor-pointer transition-all duration-300 hover:scale-125 hover:-translate-y-4 group z-50 ${isRobin ? 'rounded-full overflow-hidden' : ''}`}
-      style={{
-        left: member.left,
-        bottom: member.bottom,
-        transform: `translateY(var(--ship-y, 0))`,
-        width: member.id === 'robin' ? '30px' : '100px', // Larger hit-box for verification
-        height: member.id === 'robin' ? '30px' : '120px',
-      }}
-      onClick={() => onClick(member)}
-    >
-      <div 
-        className={`character-sprite-${member.id}`}
-        style={{
-          width: '256px',
-          height: '256px',
-          backgroundImage: `url('/sprites/${member.id}.png')`,
-          backgroundRepeat: 'no-repeat',
-          imageRendering: 'pixelated',
-          // @ts-ignore
-          imageRendering: 'crisp-edges',
-          animation: `${member.id}-anim 0.8s steps(${member.frames}) infinite`,
-          transformOrigin: 'bottom center',
-          // Simply center and scale, remove complex offsets for now
-          marginLeft: '-78px',
-          marginTop: '-136px',
-          transform: isRobin ? 'scale(0.2) translate(-280px, -280px)' : `scale(${member.scale || 1})` 
-        }}
-      />
-      
-      {/* Name Label */}
-      {!isRobin && (
-        <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-black text-white px-2 py-0.5 bg-black/40 rounded-full backdrop-blur-sm pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-          {member.name}
+    <>
+      {CREW_DATA.map((char) => (
+        <div
+          key={char.id}
+          className="char"
+          onClick={() => onSelect(char)}
+          style={{
+            left: char.left,
+            bottom: char.bottom,
+            width: `${char.frameW * 2.5}px`,
+            height: `${char.frameH * 2.5}px`,
+            backgroundImage: processedSprites[char.id] ? `url(${processedSprites[char.id]})` : 'none',
+            backgroundSize: `${(processedSprites[char.id] ? 100 : 0)}% auto`,
+            animation: processedSprites[char.id] ? `play-${char.id} 0.8s steps(${char.steps}) infinite` : 'none',
+          }}
+        >
+          <style>{`
+            @keyframes play-${char.id} {
+              from { background-position: 0 0; }
+              to { background-position: -${char.frameW * char.steps * 2.5}px 0; }
+            }
+          `}</style>
         </div>
-      )}
-
+      ))}
       <style>{`
-        @keyframes ${member.id}-anim {
-          from { background-position: 0px -${member.yOffset}px; }
-          to { background-position: -${member.totalWidth}px -${member.yOffset}px; }
+        .char {
+          position: absolute;
+          image-rendering: pixelated;
+          cursor: pointer;
+          transform: translateY(var(--ship-bob, 0px));
+          filter: drop-shadow(0 8px 16px rgba(0,0,0,0.95));
+          transition: filter 0.2s, transform 0.1s;
+          z-index: 10;
+          background-repeat: no-repeat;
+        }
+        .char:hover {
+          filter: 
+            drop-shadow(0 8px 16px rgba(0,0,0,0.95))
+            brightness(1.3)
+            drop-shadow(0 0 12px rgba(255,200,50,0.8));
+          transform: 
+            translateY(calc(var(--ship-bob,0px) - 12px)) 
+            scale(1.15);
         }
       `}</style>
-    </div>
+    </>
   );
 }
