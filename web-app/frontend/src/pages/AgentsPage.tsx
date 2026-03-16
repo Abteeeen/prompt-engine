@@ -22,32 +22,35 @@ export function AgentsPage() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 min-h-screen">
       {/* Header / Status Bar */}
-      <div className="mb-12 text-center">
-        <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 tracking-tight">The Straw Hat Prompt Crew</h1>
-        <p className="text-gray-400 text-sm max-w-2xl mx-auto mb-8">
-          Currently sailing the Grand Line of AI. Our specialized agents are distributed across the ship, 
-          working together to transform your ideas into gold-standard outputs.
+      <div className="mb-12 text-center relative">
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-10 blur-2xl pointer-events-none">
+          <div className="w-96 h-96 bg-purple-600 rounded-full" />
+        </div>
+        
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-4 tracking-tighter uppercase italic">
+          Grand Line <span className="text-purple-500">Expedition</span>
+        </h1>
+        <p className="text-gray-400 text-sm max-w-2xl mx-auto mb-10 leading-relaxed">
+          Your AI Crew is navigating the sea of creativity. Each straw hat agent specializes in a unique 
+          segment of the prompt engineering pipeline.
         </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 bg-white/5 py-4 px-8 rounded-3xl border border-white/5 backdrop-blur-md">
-          <div className="text-center">
-            <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-1">Crew Status</p>
-            <p className="text-sm font-black text-emerald-400">Battle Ready 🏴‍☠️</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-[#0a0a0f]/80 backdrop-blur-xl p-6 rounded-[2rem] border border-white/5 max-w-4xl mx-auto shadow-2xl">
+          <div className="text-center px-4 border-r border-white/5">
+            <p className="text-[10px] uppercase font-black text-white/30 tracking-[0.2em] mb-2">Ocean</p>
+            <p className="text-sm font-black text-blue-400 uppercase">New World</p>
           </div>
-          <div className="w-px h-8 bg-white/10 hidden sm:block" />
-          <div className="text-center">
-            <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-1">Sea Conditions</p>
-            <p className="text-sm font-black text-blue-400">Calm Waters</p>
+          <div className="text-center px-4 md:border-r border-white/5">
+            <p className="text-[10px] uppercase font-black text-white/30 tracking-[0.2em] mb-2">Weather</p>
+            <p className="text-sm font-black text-yellow-500 uppercase">Clear Skies</p>
           </div>
-          <div className="w-px h-8 bg-white/10 hidden sm:block" />
-          <div className="text-center">
-            <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-1">Total Prompts</p>
+          <div className="text-center px-4 border-r border-white/5">
+            <p className="text-[10px] uppercase font-black text-white/30 tracking-[0.2em] mb-2">Missions</p>
             <p className="text-sm font-black text-white">{totalPrompts.toLocaleString()}</p>
           </div>
-          <div className="w-px h-8 bg-white/10 hidden sm:block" />
-          <div className="text-center">
-            <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-1">Next Island</p>
-            <p className="text-sm font-black text-purple-400">Better Outputs — 42nm</p>
+          <div className="text-center px-4">
+            <p className="text-[10px] uppercase font-black text-white/30 tracking-[0.2em] mb-2">Heading</p>
+            <p className="text-sm font-black text-purple-400 uppercase italic">Better Prompts</p>
           </div>
         </div>
       </div>

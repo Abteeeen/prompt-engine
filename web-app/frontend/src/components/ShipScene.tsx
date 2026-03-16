@@ -2,123 +2,115 @@ import React from 'react';
 
 export function ShipScene({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative w-full h-[500px] md:h-[600px] overflow-hidden rounded-3xl bg-[#030612] shadow-2xl border border-white/5">
-      {/* Night Sky with Twinkling Stars */}
+    <div className="relative w-full h-[500px] md:h-[650px] overflow-hidden rounded-[3rem] bg-[#02040a] shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-white/5 group">
+      {/* Background Layer: Night Sky */}
       <div className="absolute inset-0 z-0">
-        {[...Array(50)].map((_, i) => (
+        {[...Array(60)].map((_, i) => (
           <div 
             key={i}
             className="absolute rounded-full bg-white animate-twinkle"
             style={{
               width: Math.random() * 2 + 'px',
               height: Math.random() * 2 + 'px',
-              top: Math.random() * 70 + '%',
+              top: Math.random() * 60 + '%',
               left: Math.random() * 100 + '%',
               animationDelay: Math.random() * 5 + 's',
-              opacity: Math.random()
+              opacity: Math.random() * 0.7
             }}
           />
         ))}
-        {/* Large Moon */}
-        <div className="absolute top-12 right-12 w-20 h-20 rounded-full bg-white/10 blur-sm shadow-[0_0_60px_rgba(255,255,255,0.1)]" />
+        {/* Large Glowing Moon */}
+        <div className="absolute top-16 right-20 w-24 h-24 rounded-full bg-white/5 blur-md shadow-[0_0_80px_rgba(255,255,255,0.15)] animate-pulse" />
       </div>
 
-      {/* Distant Islands */}
-      <div className="absolute bottom-32 w-full flex justify-around opacity-20 pointer-events-none">
-        <div className="w-64 h-32 bg-black rounded-[100%_100%_0_0] blur-md translate-y-12" />
-        <div className="w-48 h-20 bg-black rounded-[100%_100%_0_0] blur-md translate-y-8" />
+      {/* Midground: Slow Moving Stylized Clouds */}
+      <div className="absolute inset-0 z-1 pointer-events-none opacity-20">
+        <div className="absolute top-20 left-1/4 w-96 h-20 bg-gradient-to-r from-transparent via-white/20 to-transparent blur-3xl animate-drift-slow" />
+        <div className="absolute top-40 right-1/4 w-80 h-16 bg-gradient-to-r from-transparent via-white/10 to-transparent blur-3xl animate-drift-reverse" />
       </div>
 
-      {/* The Ocean Waves (SVG) */}
-      <div className="absolute bottom-0 w-full z-10">
-        <svg className="waves" xmlns="http://www.w3.org/2000/svg" viewBox="0 24 150 28" preserveAspectRatio="none" shapeRendering="auto">
+      {/* Far Background Waves */}
+      <div className="absolute bottom-20 w-[200%] left-[-50%] h-40 opacity-40 z-2">
+        <svg className="w-full h-full" viewBox="0 24 150 28" preserveAspectRatio="none">
+          <use href="#wave-path-static" x="48" y="0" fill="rgba(10, 20, 50, 0.4)" />
+        </svg>
+      </div>
+
+      {/* THE SHIP: Thousand Sunny Isometric Image */}
+      <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-[380px] md:w-[650px] aspect-[1.6/1] z-10 animate-rock">
+        <img 
+          src="/images/agents/ship_base.png" 
+          alt="Thousand Sunny" 
+          className="w-full h-full object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.9)] pixel-art"
+        />
+        
+        {/* Ambient Ship Detail: News Coo */}
+        <div className="absolute top-[15%] left-[25%] w-8 h-8 z-20 animate-bob-ship">
+          <img src="/images/agents/news_coo.png" alt="News Coo" className="w-full h-full object-contain pixel-art opacity-80" />
+        </div>
+
+        {/* This is where CrewMembers are positioned */}
+        {children}
+      </div>
+
+      {/* Foreground Waves: Depth Layers */}
+      <div className="absolute bottom-0 w-full z-40 h-32 pointer-events-none">
+        <svg className="w-full h-full" viewBox="0 24 150 28" preserveAspectRatio="none">
           <defs>
-            <path id="gentle-wave" d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z" />
+            <path id="wave-path-static" d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z" />
           </defs>
-          <g className="parallax">
-            <use href="#gentle-wave" x="48" y="0" fill="rgba(8, 14, 44, 0.7)" />
-            <use href="#gentle-wave" x="48" y="3" fill="rgba(8, 14, 44, 0.5)" />
-            <use href="#gentle-wave" x="48" y="5" fill="rgba(8, 14, 44, 0.3)" />
-            <use href="#gentle-wave" x="48" y="7" fill="#030612" />
+          <g className="parallax-waves">
+            <use href="#wave-path-static" x="48" y="0" fill="rgba(2, 4, 10, 0.8)" />
+            <use href="#wave-path-static" x="48" y="3" fill="rgba(8, 14, 30, 0.5)" />
+            <use href="#wave-path-static" x="48" y="7" fill="#02040a" />
           </g>
         </svg>
       </div>
 
-      {/* Thousand Sunny Ship silhouette/container */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[350px] md:w-[500px] h-[300px] z-20 animate-rock">
-        {/* Main Hull Shape (SVG) */}
-        <svg className="w-full h-full drop-shadow-2xl" viewBox="0 0 500 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-          {/* Sunny Figurehead base */}
-          <circle cx="430" cy="120" r="30" fill="#1e1e1e" />
-          <path d="M430 90 L460 120 L430 150 L400 120 Z" fill="#FFA500" opacity="0.4" />
-          
-          {/* Ship Body */}
-          <path d="M50 80 L80 220 L420 220 L400 100 Z" fill="#2a1b12" />
-          <path d="M50 80 C 150 60, 300 60, 400 100" stroke="#3d2a1d" strokeWidth="4" />
-          
-          {/* Main Mast */}
-          <rect x="220" y="20" width="12" height="180" fill="#3d2a1d" />
-          <path d="M120 40 L340 40 L320 130 L140 130 Z" fill="white" opacity="0.05" />
-          
-          {/* Windows (Glow) */}
-          <rect x="150" y="160" width="15" height="15" rx="2" fill="#eab308" opacity="0.3" className="animate-pulse" />
-          <rect x="250" y="160" width="15" height="15" rx="2" fill="#eab308" opacity="0.3" className="animate-pulse" />
-          <rect x="350" y="160" width="15" height="15" rx="2" fill="#eab308" opacity="0.3" className="animate-pulse" />
-        </svg>
-
-        {/* This is where CrewMembers will be absolute-positioned */}
-        {children}
-      </div>
-
       <style>{`
-        @keyframes twinkle {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 1; transform: scale(1.2); }
+        .pixel-art { image-rendering: pixelated; }
+
+        @keyframes drift-slow {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(100%); }
         }
-        .animate-twinkle {
-          animation: twinkle 4s infinite ease-in-out;
+        @keyframes drift-reverse {
+          from { transform: translateX(100%); }
+          to { transform: translateX(-100%); }
         }
+        .animate-drift-slow { animation: drift-slow 60s linear infinite; }
+        .animate-drift-reverse { animation: drift-reverse 45s linear infinite; }
+
         @keyframes rock {
-          0% { transform: translate(-50%, 0) rotate(-1deg); }
-          50% { transform: translate(-50%, -5px) rotate(1deg); }
-          100% { transform: translate(-50%, 0) rotate(-1deg); }
+          0% { transform: translate(-50%, 0) rotate(-1.5deg); }
+          50% { transform: translate(-50%, -12px) rotate(1.5deg); }
+          100% { transform: translate(-50%, 0) rotate(-1.5deg); }
         }
-        .animate-rock {
-          animation: rock 5s infinite ease-in-out;
-        }
+        .animate-rock { animation: rock 6s infinite ease-in-out; }
 
-        .waves {
-          position: relative;
-          width: 100%;
-          height: 100px;
-          margin-bottom:-7px; /*Fix for safari gap*/
-          min-height:100px;
-          max-height:150px;
+        @keyframes bob-ship {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
         }
+        .animate-bob-ship { animation: bob-ship 3s ease-in-out infinite; }
 
-        .parallax > use {
-          animation: move-forever 25s cubic-bezier(.55,.5,.45,.5) infinite;
+        .parallax-waves > use {
+          animation: move-wave 20s cubic-bezier(.55,.5,.45,.5) infinite;
         }
-        .parallax > use:nth-child(1) {
-          animation-delay: -2s;
-          animation-duration: 7s;
-        }
-        .parallax > use:nth-child(2) {
-          animation-delay: -3s;
-          animation-duration: 10s;
-        }
-        .parallax > use:nth-child(3) {
-          animation-delay: -4s;
-          animation-duration: 13s;
-        }
-        .parallax > use:nth-child(4) {
-          animation-delay: -5s;
-          animation-duration: 20s;
-        }
-        @keyframes move-forever {
+        .parallax-waves > use:nth-child(1) { animation-delay: -2s; animation-duration: 7s; }
+        .parallax-waves > use:nth-child(2) { animation-delay: -3s; animation-duration: 10s; }
+        .parallax-waves > use:nth-child(3) { animation-delay: -5s; animation-duration: 15s; }
+
+        @keyframes move-wave {
           0% { transform: translate3d(-90px,0,0); }
           100% { transform: translate3d(85px,0,0); }
         }
+
+        @keyframes twinkle {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.8; transform: scale(1.1); }
+        }
+        .animate-twinkle { animation: twinkle 4s infinite ease-in-out; }
       `}</style>
     </div>
   );
