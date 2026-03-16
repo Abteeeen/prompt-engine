@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import ShipScene from '../components/ShipScene';
+import { OceanCanvas } from '../components/OceanCanvas';
 
 const LOG_MESSAGES = [
-  "Sailing across the bright blue waves of the Grand Line...",
-  "Luffy found a new prompt idea under the sun",
+  "Sailing through the silent night of the Grand Line...",
+  "Luffy found a new prompt idea on the horizon",
   "Usopp landed a perfect shot — SEO prompt done",
   "Zoro is sharpening the code debugging prompts",
   "Sanji is cooking up a fresh UI design",
@@ -11,7 +12,7 @@ const LOG_MESSAGES = [
   "Robin decrypted a complex data structure",
   "Chopper is healing a broken API connection",
   "Entering the Sea of Innovation...",
-  "The midday sun shines bright on the Thousand Sunny",
+  "The wind of creativity is blowing strongly",
 ];
 
 export default function AgentsPage() {
@@ -27,7 +28,10 @@ export default function AgentsPage() {
   }, []);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-sky-900 font-sans selection:bg-blue-500/30">
+    <div className="relative w-full h-screen overflow-hidden bg-[#000308] font-sans selection:bg-violet-500/30">
+      {/* LAYER 0: 2D Ocean Background */}
+      <OceanCanvas />
+      
       {/* LAYER 1: Three.js 3D Ship Scene */}
       <ShipScene />
 

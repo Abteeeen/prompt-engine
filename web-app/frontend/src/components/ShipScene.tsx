@@ -35,39 +35,50 @@ export default function ShipScene() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.VSMShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 0.75; // Night exposure
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     
     containerRef.current.appendChild(renderer.domElement);
 
-    // 2. LIGHTING (Daytime - High Contrast)
-    // Strong Sunlight
-    const sunLight = new THREE.DirectionalLight(0xfffff0, 4.0);
-    sunLight.position.set(50, 100, 50);
-    sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 4096;
-    sunLight.shadow.mapSize.height = 4096;
-    sunLight.shadow.camera.near = 1;
-    sunLight.shadow.camera.far = 400;
-    const sSize = 60;
-    sunLight.shadow.camera.left = -sSize;
-    sunLight.shadow.camera.right = sSize;
-    sunLight.shadow.camera.top = sSize;
-    sunLight.shadow.camera.bottom = -sSize;
-    sunLight.shadow.bias = -0.0001;
-    scene.add(sunLight);
+    // 2. LIGHTING (Night - Cinematic Atmosphere)
+    // Moonlight — cool blue-white
+    const moon = new THREE.DirectionalLight(0x8899bb, 1.2);
+    moon.position.set(30, 50, 40);
+    moon.castShadow = true;
+    moon.shadow.mapSize.width = 2048;
+    moon.shadow.mapSize.height = 2048;
+    moon.shadow.camera.near = 0.5;
+    moon.shadow.camera.far = 300;
+    const sSize = 50;
+    moon.shadow.camera.left = -sSize;
+    moon.shadow.camera.right = sSize;
+    moon.shadow.camera.top = sSize;
+    moon.shadow.camera.bottom = -sSize;
+    scene.add(moon);
 
-    // Sky/Ground Ambient
-    const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x444444, 1.5);
-    scene.add(hemiLight);
+    // Lanterns (Warm glows)
+    const lantern1 = new THREE.PointLight(0xffaa44, 1.4, 50);
+    lantern1.position.set(5, 12, 5);
+    lantern1.castShadow = true;
+    scene.add(lantern1);
 
-    // Bounce Light (Fill)
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    const lantern2 = new THREE.PointLight(0xff8822, 0.9, 40);
+    lantern2.position.set(-5, 10, -5);
+    lantern2.castShadow = true;
+    scene.add(lantern2);
+
+    // Fill light — very subtle
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
     fillLight.position.set(-50, 20, -50);
     scene.add(fillLight);
 
-    // Ambient
-    const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+    // Rim light — barely visible
+    const rimLight = new THREE.DirectionalLight(0x8899bb, 0.2);
+    rimLight.position.set(0, 5, -50);
+    scene.add(rimLight);
+
+    // Ambient — reduce intensity to keep atmosphere
+    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambient);
 
     // 3. CONTROLS (Interactive Rotation)
@@ -100,17 +111,9 @@ export default function ShipScene() {
             
             const name = mesh.name.toLowerCase();
             
-            // Re-enable Original Model Water/Ocean
+            // Hide glTF Water to use photorealistic 2D OceanCanvas background
             if (name.includes('water') || name.includes('ocean') || name.includes('sea') || name.includes('plane')) {
-              mesh.visible = true;
-              if (mesh.material instanceof THREE.MeshStandardMaterial) {
-                mesh.material.transparent = true;
-                mesh.material.opacity = 0.95;
-                mesh.material.metalness = 0.3;
-                mesh.material.roughness = 0.1;
-                mesh.material.color.setHex(0x004488);
-              }
-              mesh.userData.isWater = true;
+              mesh.visible = false;
             } else if (name.includes('stand') || name.includes('ground')) {
               mesh.visible = false;
             } else {
