@@ -1,14 +1,43 @@
 import React, { useEffect, useState } from 'react'
+import { api } from '../services/api'
 import type { Template } from '../types'
 import { PromptCard } from '../components/PromptCard'
 import { discoverPrompts, discoverCategories } from '../data/discoverPrompts'
 
 export function DiscoverPage() {
   const [filter, setFilter] = useState('all')
+  const [internalTemplates, setInternalTemplates] = useState<Template[]>([])
+
+  useEffect(() => {
+    api.templates.list()
+      .then(list => setInternalTemplates(list.slice(0, 10)))
+      .catch(() => {})
+  }, [])
+
+  // Merge datasets
+  const allPrompts = [
+    ...internalTemplates.map(t => ({ ...t, isInternal: true })),
+    ...discoverPrompts.map(p => ({ ...p, isInternal: false }))
+  ]
 
   const shown = filter === 'all' 
-    ? discoverPrompts 
-    : discoverPrompts.filter(p => p.categorySlug === filter || p.category === filter)
+    ? allPrompts 
+    : allPrompts.filter(p => {
+        const cat = p.category.toLowerCase()
+        const f = filter.toLowerCase()
+        
+        // Basic mapping for better filtering
+        if (f === 'marketing' && (cat === 'sales' || cat === 'communication')) return true
+        if (f === 'business' && (cat === 'legal' || cat === 'productivity' || cat === 'hr' || cat === 'product')) return true
+        if (f === 'writing' && (cat === 'content' || cat === 'creativity' || cat === 'education')) return true
+        if (f === 'research' || f === 'seo & research') {
+           if (cat === 'research' || cat === 'analytics') return true
+        }
+        if (f === 'art' && cat === 'multimedia') return true
+        if (f === 'development' && cat === 'support') return true
+
+        return cat === f || (p as any).categorySlug === f
+      })
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
@@ -16,7 +45,7 @@ export function DiscoverPage() {
       <div className="mb-12 text-center md:text-left">
         <h1 className="text-4xl sm:text-5xl font-black text-white mb-4 tracking-tight">Discover</h1>
         <p className="text-gray-400 text-base max-w-2xl">
-          Explore a library of high-performance, free prompts curated from SnackPrompt. 
+          Explore our professional Pro Collection combined with high-performance community prompts. 
           Pick a category to find the perfect starting point for your next idea.
         </p>
       </div>
@@ -44,57 +73,13 @@ export function DiscoverPage() {
 
       {/* Grid - 2 cols mobile, 3-4 cols desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 animate-fade-in text-white">
-        {shown.map(prompt => (
-          <a
-            key={prompt.id}
-            href={prompt.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="glass glass-hover flex flex-col group overflow-hidden transition-all duration-300 p-0 h-full"
-          >
-            {/* Thumbnail Area */}
-            <div 
-              className="relative h-32 flex items-center justify-center overflow-hidden"
-              style={{ background: prompt.gradient }}
-            >
-               {prompt.coverImage ? (
-                <img src={prompt.coverImage} alt={prompt.title} className="absolute inset-0 w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-110" />
-              ) : (
-                <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '12px 12px' }} />
-              )}
-              
-              <div className="relative z-10 p-4 transition-transform duration-500 group-hover:scale-110">
-                {/* Emoji removed per user request */}
-              </div>
-              
-              {/* Category Badge on Thumbnail */}
-              <div className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-black/20 backdrop-blur-md border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/90">
-                {prompt.category}
-              </div>
-            </div>
-
-            {/* Content Area */}
-            <div className="p-4 flex flex-col flex-1">
-              <h3 className="text-sm font-bold text-white mb-1.5 group-hover:text-purple-300 transition-colors line-clamp-1">
-                {prompt.title}
-              </h3>
-              <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mb-4 flex-1">
-                {prompt.description}
-              </p>
-
-              <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                <span className="text-[10px] font-bold text-gray-400">
-                  {prompt.uses} uses <span className="text-purple-500/50">✦</span>
-                </span>
-                <span className="text-xs font-bold text-purple-400 group-hover:text-purple-300 transition-colors flex items-center gap-1">
-                  View on SnackPrompt
-                  <svg className="w-3 h-3 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </span>
-              </div>
-            </div>
-          </a>
+        {shown.map((p, i) => (
+          <div key={(p as any).id + i}>
+            <PromptCard 
+              template={(p as any).isInternal ? (p as Template) : undefined} 
+              prompt={!(p as any).isInternal ? (p as any) : undefined} 
+            />
+          </div>
         ))}
         {shown.length === 0 && (
           <div className="col-span-full text-center py-32">
