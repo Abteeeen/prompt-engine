@@ -11,7 +11,7 @@ export interface CrewAgent {
   color: string;
   position: { top: string; left: string };
   specialty: string;
-  animationClass: string;
+  actionClass: string;
 }
 
 export const CREW: CrewAgent[] = [
@@ -24,9 +24,9 @@ export const CREW: CrewAgent[] = [
     status: 'Exploring...',
     doneText: 'Idea found!',
     color: '#ef4444',
-    position: { top: '32%', left: '88%' },
+    position: { top: '30%', left: '88%' },
     specialty: 'Strategy & Brainstorming',
-    animationClass: 'animate-sway'
+    actionClass: 'animate-luffy-flex'
   },
   {
     id: 'nami',
@@ -39,7 +39,7 @@ export const CREW: CrewAgent[] = [
     color: '#f97316',
     position: { top: '42%', left: '58%' },
     specialty: 'Data & Market Research',
-    animationClass: 'animate-bob'
+    actionClass: 'animate-nami-nav'
   },
   {
     id: 'zoro',
@@ -52,7 +52,7 @@ export const CREW: CrewAgent[] = [
     color: '#22c55e',
     position: { top: '55%', left: '42%' },
     specialty: 'Code & Logic Optimization',
-    animationClass: 'animate-pulse-slow'
+    actionClass: 'animate-zoro-weights'
   },
   {
     id: 'sanji',
@@ -65,7 +65,7 @@ export const CREW: CrewAgent[] = [
     color: '#eab308',
     position: { top: '52%', left: '26%' },
     specialty: 'Creative & Email Writing',
-    animationClass: 'animate-sway'
+    actionClass: 'animate-sanji-cook'
   },
   {
     id: 'chopper',
@@ -76,9 +76,9 @@ export const CREW: CrewAgent[] = [
     status: 'Diagnosing...',
     doneText: 'Quality verified!',
     color: '#ec4899',
-    position: { top: '55%', left: '16%' },
+    position: { top: '56%', left: '16%' },
     specialty: 'Review & Proofreading',
-    animationClass: 'animate-bob'
+    actionClass: 'animate-chopper-hop'
   },
   {
     id: 'robin',
@@ -89,9 +89,9 @@ export const CREW: CrewAgent[] = [
     status: 'Reading...',
     doneText: 'Context loaded!',
     color: '#a855f7',
-    position: { top: '72%', left: '48%' },
+    position: { top: '74%', left: '48%' },
     specialty: 'Legal & Academic Context',
-    animationClass: 'animate-pulse-slow'
+    actionClass: 'animate-robin-focus'
   }
 ];
 
@@ -105,7 +105,7 @@ export function CrewMember({ agent, isActive }: CrewMemberProps) {
 
   return (
     <div 
-      className="absolute z-30 transition-all duration-500"
+      className="absolute z-30 transition-all duration-1000"
       style={{ 
         top: agent.position.top, 
         left: agent.position.left,
@@ -116,17 +116,17 @@ export function CrewMember({ agent, isActive }: CrewMemberProps) {
         className="relative cursor-pointer group"
         onClick={() => setShowPopup(!showPopup)}
       >
-        {/* Animated Aura when active */}
-        {isActive && (
-          <div className="absolute inset-0 scale-[2.5] bg-opacity-30 rounded-full animate-ping z-0" style={{ backgroundColor: agent.color }} />
-        )}
-        
-        {/* Character Sprite */}
+        {/* ACTION AURA */}
         <div 
-          className={`relative z-10 w-12 h-12 md:w-16 md:h-16 transition-all duration-300 transform 
-            ${isActive ? 'scale-125' : 'group-hover:scale-110'} ${agent.animationClass}`}
+          className={`absolute inset-0 scale-[3] bg-opacity-20 rounded-full blur-2xl transition-all duration-500 opacity-0 ${isActive ? 'opacity-100 animate-pulse' : 'group-hover:opacity-40'}`} 
+          style={{ backgroundColor: agent.color }} 
+        />
+        
+        {/* CHARACTER SPRITE WITH DYNAMIC ACTIONS */}
+        <div 
+          className={`relative z-10 w-16 h-16 md:w-24 md:h-24 transition-all duration-500 transform ${agent.actionClass} ${isActive ? 'brightness(1.3) scale-110' : ''}`}
           style={{ 
-            filter: isActive ? `drop-shadow(0 0 10px ${agent.color}) brightness(1.2)` : 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))',
+            filter: isActive ? `drop-shadow(0 0 15px ${agent.color}88)` : 'drop-shadow(0 8px 12px rgba(0,0,0,0.6))',
           }}
         >
           <img 
@@ -134,45 +134,60 @@ export function CrewMember({ agent, isActive }: CrewMemberProps) {
             alt={agent.name} 
             className="w-full h-full object-contain pixel-art" 
           />
+          
+          {/* SPECIAL ACTION FX */}
+          {agent.id === 'sanji' && isActive && (
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-8 bg-blue-500/40 rounded-full blur-xl animate-pulse" />
+          )}
+          {agent.id === 'luffy' && isActive && (
+            <div className="absolute inset-0 border-2 border-white/20 rounded-full animate-ping" />
+          )}
         </div>
 
-        {/* Status Badge */}
+        {/* Status Indicator */}
         <div 
-          className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-lg text-[10px] font-black text-white border transition-all duration-300 opacity-0 group-hover:opacity-100 z-20"
+          className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-xl text-[11px] font-black text-white border transition-all duration-500 opacity-0 group-hover:opacity-100 z-20 pointer-events-none"
           style={{ 
-            backgroundColor: 'rgba(15, 15, 20, 0.9)', 
+            backgroundColor: 'rgba(5, 5, 10, 0.95)', 
             borderColor: agent.color,
-            backdropFilter: 'blur(8px)',
-            boxShadow: `0 0 15px ${agent.color}44`
+            backdropFilter: 'blur(12px)',
+            boxShadow: `0 0 30px ${agent.color}33`
           }}
         >
           {isActive ? (
-            <span className="flex items-center gap-1">
-              <span className="w-1 h-1 rounded-full animate-pulse" style={{ backgroundColor: agent.color }} />
-              {agent.status}
+            <span className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full animate-pulse" style={{ backgroundColor: agent.color }} />
+              WORKING: {agent.status}
             </span>
-          ) : agent.name}
+          ) : (
+            <span className="flex items-center gap-2 uppercase tracking-widest">
+              {agent.name} <span className="text-[8px] opacity-40">| VIEW DETAILS</span>
+            </span>
+          )}
         </div>
 
-        {/* Popup Detail */}
+        {/* POPUP CARD (Inspired by floor796 character cards) */}
         {showPopup && (
           <div 
-            className="absolute bottom-16 left-1/2 -translate-x-1/2 w-56 bg-[#0f0f14]/95 border border-white/10 backdrop-blur-2xl rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 animate-slide-up"
-            style={{ borderTop: `4px solid ${agent.color}` }}
+            className="absolute bottom-24 left-1/2 -translate-x-1/2 w-64 bg-[#0a0a0f]/95 border border-white/10 backdrop-blur-3xl rounded-[2rem] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.9)] z-50 animate-popup-in"
+            style={{ borderTop: `6px solid ${agent.color}` }}
           >
-            <div className="flex justify-between items-start mb-2">
-              <h4 className="text-xs font-black text-white uppercase tracking-tighter">{agent.role}</h4>
-              <button onClick={(e) => { e.stopPropagation(); setShowPopup(false); }} className="text-white/40 hover:text-white">×</button>
-            </div>
-            <p className="text-[10px] text-gray-400 leading-tight mb-2 italic">"{agent.task}"</p>
-            <div className="space-y-1">
-              <div className="flex justify-between items-center text-[9px]">
-                <span className="text-white/40">Specialty:</span>
-                <span style={{ color: agent.color }}>{agent.specialty}</span>
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h4 className="text-xs font-black text-white/40 uppercase tracking-widest mb-1">{agent.role}</h4>
+                <h2 className="text-2xl font-black text-white italic tracking-tighter leading-none">{agent.name}</h2>
               </div>
-              <div className="flex justify-between items-center text-[9px]">
-                <span className="text-white/40">Status:</span>
-                <span className="text-emerald-400">Ready</span>
+              <button onClick={(e) => { e.stopPropagation(); setShowPopup(false); }} className="text-white/20 hover:text-white transition-colors">✕</button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                <p className="text-[10px] text-purple-400 font-bold uppercase mb-2">Specialty</p>
+                <p className="text-xs text-white font-medium leading-relaxed">{agent.specialty}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-500 font-bold uppercase mb-2">Current Mission</p>
+                <p className="text-xs text-gray-300 italic">"{agent.task}"</p>
               </div>
             </div>
           </div>
@@ -180,35 +195,48 @@ export function CrewMember({ agent, isActive }: CrewMemberProps) {
       </div>
       
       <style>{`
-        @keyframes bob {
+        @keyframes zoro-weights {
+          0%, 100% { transform: translateY(0) scaleY(1); }
+          50% { transform: translateY(-12px) scaleY(0.95); }
+        }
+        @keyframes sanji-cook {
+          0%, 100% { transform: scale(1) rotate(-1deg); }
+          25% { transform: scale(1.02, 0.98) rotate(1deg); }
+          50% { transform: scale(1) rotate(-1deg); }
+          75% { transform: scale(0.98, 1.02) rotate(1deg); }
+        }
+        @keyframes luffy-flex {
+          0%, 100% { transform: scale(1); filter: brightness(1); }
+          50% { transform: scale(1.08); filter: brightness(1.4) drop-shadow(0 0 15px #ef444466); }
+        }
+        @keyframes chopper-hop {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
+          20% { transform: translateY(-15px) rotate(5deg); }
+          40% { transform: translateY(0); }
         }
-        @keyframes sway {
-          0%, 100% { transform: rotate(-3deg) translateY(0); }
-          50% { transform: rotate(3deg) translateY(-4px); }
+        @keyframes nami-nav {
+          0%, 100% { transform: translateX(0) scale(1); }
+          50% { transform: translateX(5px) scale(1.02); }
         }
-        @keyframes pulse-slow {
-          0%, 100% { opacity: 0.8; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.05); }
-        }
-        .animate-bob { animation: bob 3s ease-in-out infinite; }
-        .animate-sway { animation: sway 4s ease-in-out infinite; }
-        .animate-pulse-slow { animation: pulse-slow 5s ease-in-out infinite; }
-        
-        .pixel-art {
-          image-rendering: pixelated;
-          image-rendering: -moz-crisp-edges;
-          image-rendering: crisp-edges;
+        @keyframes robin-focus {
+          0%, 100% { transform: translateY(0); opacity: 0.9; }
+          50% { transform: translateY(-4px); opacity: 1; }
         }
 
-        @keyframes slide-up {
-          from { transform: translate(-50%, 20px); opacity: 0; }
-          to { transform: translate(-50%, 0); opacity: 1; }
+        .animate-zoro-weights { animation: zoro-weights 1.5s ease-in-out infinite; }
+        .animate-sanji-cook { animation: sanji-cook 0.8s ease-in-out infinite; }
+        .animate-luffy-flex { animation: luffy-flex 2s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
+        .animate-chopper-hop { animation: chopper-hop 4s ease-in-out infinite; }
+        .animate-nami-nav { animation: nami-nav 3s ease-in-out infinite; }
+        .animate-robin-focus { animation: robin-focus 4s ease-in-out infinite; }
+
+        .pixel-art { image-rendering: pixelated; }
+
+        @keyframes popup-in {
+          from { transform: translate(-50%, 30px); opacity: 0; filter: blur(10px); }
+          to { transform: translate(-50%, 0); opacity: 1; filter: blur(0); }
         }
-        .animate-slide-up {
-          animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+        .animate-popup-in { animation: popup-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
     </div>
   );
