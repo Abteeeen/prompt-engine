@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../services/api'
 import type { Template, FormStructure, GenerateResult, FormData } from '../types'
-import { TemplateCard } from '../components/TemplateCard'
+import { PromptCard } from '../components/PromptCard'
 import { DynamicForm } from '../components/DynamicForm'
 import { PromptDisplay } from '../components/PromptDisplay'
 import { Button } from '../components/ui/Button'
@@ -18,7 +18,7 @@ function TemplateSelector({ templates, selected, onSelect }: { templates: Templa
       <input
         value={search}
         onChange={e => setSearch(e.target.value)}
-        placeholder="Filter templates..."
+        placeholder="Filter prompts..."
         className="input-base mb-4"
       />
       <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
@@ -156,14 +156,14 @@ export function GeneratorPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-black text-white mb-1">Prompt Generator</h1>
-        <p className="text-sm text-gray-500">Pick a template → fill the form → get a scored prompt in 60 seconds.</p>
+        <p className="text-sm text-gray-500">Pick a prompt → fill the form → get a scored prompt in 60 seconds.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_400px] gap-6">
 
         {/* ── COLUMN 1: Template selector ── */}
         <div className="glass p-4 rounded-2xl h-fit lg:sticky lg:top-24">
-          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">1. Choose template</h2>
+          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">1. Choose prompt</h2>
           <TemplateSelector templates={templates} selected={selected} onSelect={setSelected} />
         </div>
 
@@ -189,7 +189,7 @@ export function GeneratorPage() {
           {!selected && (
             <div className="py-16 text-center text-gray-600">
               <div className="text-4xl mb-3">←</div>
-              <p className="text-sm">Select a template to begin</p>
+              <p className="text-sm">Select a prompt from Discover to begin</p>
             </div>
           )}
 

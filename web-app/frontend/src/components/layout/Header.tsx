@@ -4,7 +4,7 @@ import { ThemeToggle } from '../ThemeToggle'
 
 const NAV = [
   { href: '/', label: 'Home', icon: '✨' },
-  { href: '/templates', label: 'Templates', icon: '📄' },
+  { href: '/discover', label: 'Discover', icon: '🚀' },
   { href: '/generate', label: 'Generate', icon: '⚡' },
 ]
 

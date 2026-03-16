@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { api } from '../services/api'
-import type { Template, QualityScore } from '../types'
+import type { Template, QualityScore, GenerateResult } from '../types'
 import { TemplateCard } from '../components/TemplateCard'
 import { Link } from 'react-router-dom'
+import { discoverPrompts, type DiscoverPrompt } from '../data/discoverPrompts'
+import { DiscoverPage } from '../pages/DiscoverPage'
+import { DiscoverDetailPage } from '../pages/DiscoverDetailPage'
+import { PromptCard } from '../components/PromptCard'
 import PromptHistory, { HistoryItem, saveToHistory } from '../components/PromptHistory'
 import { QualityScoreMini } from '../components/QualityScore'
 // ── AI Prompt Generator ─────────────────────────────────────────────────────
@@ -572,7 +576,7 @@ function AIGenerator() {
                   <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span className="text-sm font-semibold text-white">Your Perfect Prompt</span>
                   <span className="text-xs text-white/40">
-                    {result.source === 'groq' ? '· AI-powered' : '· Template engine'}
+                    {result.source === 'groq' ? '· AI-powered' : '· Prompt engine'}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
@@ -597,7 +601,7 @@ function AIGenerator() {
                   to="/generate"
                   className="text-xs text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1"
                 >
-                  Use a template instead
+                  Try a prompt from Discover
                   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                 </Link>
               </div>
@@ -662,30 +666,59 @@ function HowToUse() {
   )
 }
 
-// ── Templates preview ────────────────────────────────────────────────────────
+// ── Most Used Prompts (Discover Preview) ─────────────────────────────────────
 
-function TemplatesPreview({ templates }: { templates: Template[] }) {
-  if (!templates.length) return null
+function MostUsedPrompts() {
+  const topPrompts = discoverPrompts.slice(0, 5)
   return (
     <section className="max-w-6xl mx-auto px-6 pt-8 pb-32 scroll-reveal">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Domain templates</p>
-          <h2 className="text-xl font-black text-white">Or start from an expert template</h2>
+          <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Discover Prompts</p>
+          <h2 className="text-2xl font-black text-white tracking-tight">Most Used Prompts</h2>
         </div>
-        <Link to="/templates" className="text-sm text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1 shrink-0">
-          Browse all 10
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+        <Link to="/discover" className="text-sm font-bold text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1 shrink-0">
+          Browse Discover
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 overflow-hidden">
-        {templates.slice(0, 4).map(t => <TemplateCard key={t.id} template={t} />)}
-        {templates.slice(4, 5).map(t => <div className="hidden sm:block" key={t.id}><TemplateCard template={t} /></div>)}
-      </div>
-
-      <div className="hidden sm:grid mt-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 overflow-hidden">
-        {templates.slice(5, 10).map(t => <TemplateCard key={t.id} template={t} compact />)}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {topPrompts.map((prompt: DiscoverPrompt, i: number) => (
+          <a
+            key={prompt.id}
+            href={prompt.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`glass glass-hover flex flex-col group overflow-hidden transition-all duration-300 ${
+              i >= 4 ? 'hidden lg:flex' : 'flex'
+            }`}
+          >
+            <div 
+              className="h-28 flex items-center justify-center relative overflow-hidden"
+              style={{ background: prompt.gradient }}
+            >
+              {prompt.coverImage ? (
+                <img src={prompt.coverImage} alt={prompt.title} className="absolute inset-0 w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-110" />
+              ) : (
+                <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '12px 12px' }} />
+              )}
+              <span className="relative z-10 text-3xl group-hover:scale-110 transition-transform duration-500">{prompt.icon}</span>
+            </div>
+            <div className="p-3 flex-1 flex flex-col">
+              <h3 className="text-[12px] font-bold text-white mb-1 group-hover:text-purple-300 transition-colors line-clamp-1">
+                {prompt.title}
+              </h3>
+              <p className="text-[10px] text-gray-500 line-clamp-2 leading-relaxed flex-1">
+                {prompt.description}
+              </p>
+              <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between">
+                <span className="text-[8px] font-black uppercase tracking-widest text-white/30">{prompt.category}</span>
+                <span className="text-[10px] text-purple-400 font-bold">→</span>
+              </div>
+            </div>
+          </a>
+        ))}
       </div>
     </section>
   )
@@ -798,8 +831,8 @@ export function HomePage() {
       {/* How to use */}
       <HowToUse />
 
-      {/* Templates */}
-      <TemplatesPreview templates={templates} />
+      {/* Prompts Discovery */}
+      <MostUsedPrompts />
 
       {/* Let's Connect Footer (Floating Animated Card) */}
       <section className="relative px-6 py-32 mt-10 overflow-hidden bg-transparent">

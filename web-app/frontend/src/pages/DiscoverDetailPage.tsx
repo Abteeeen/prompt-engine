@@ -30,7 +30,7 @@ function CopyBlock({ text, label }: { text: string; label?: string }) {
   )
 }
 
-export function TemplatePage() {
+export function DiscoverDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [template, setTemplate] = useState<Template | null>(null)
   const [loading, setLoading]   = useState(true)
@@ -41,7 +41,7 @@ export function TemplatePage() {
     if (!id) return
     setLoading(true)
     api.templates.get(id)
-      .then(t => { setTemplate(t); setLoading(false); api.analytics.track('template_viewed', id) })
+      .then(t => { setTemplate(t); setLoading(false); api.analytics.track('prompt_viewed', id) })
       .catch(err => { setError(err.message); setLoading(false) })
   }, [id])
 
@@ -56,24 +56,24 @@ export function TemplatePage() {
   if (error || !template) return (
     <div className="max-w-4xl mx-auto px-6 py-24 text-center">
       <div className="text-5xl mb-4">🔍</div>
-      <p className="text-gray-400 mb-2">{error || 'Template not found'}</p>
-      <Link to="/templates" className="text-sm text-purple-400 hover:text-purple-300">← All templates</Link>
+      <p className="text-gray-400 mb-2">{error || 'Prompt not found'}</p>
+      <Link to="/discover" className="text-sm text-purple-400 hover:text-purple-300">← Back to Discover</Link>
     </div>
   )
 
   const icon = CATEGORY_ICONS[template.category] || '✦'
   const tabs = [
-    { key: 'template', label: 'Template',  count: null },
+    { key: 'template', label: 'Prompt Template',  count: null },
     { key: 'examples', label: 'Examples',  count: template.examples?.length ?? 0 },
-    { key: 'tips',     label: 'Pro Tips',  count: template.proTips?.length ?? 0 },
+    { key: 'tips',     label: 'Tactical Tips',  count: template.proTips?.length ?? 0 },
   ] as const
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12">
       {/* Back */}
-      <Link to="/templates" className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors mb-10">
+      <Link to="/discover" className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors mb-10">
         <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        All templates
+        Back to Discover
       </Link>
 
       {/* Header card */}
@@ -101,7 +101,7 @@ export function TemplatePage() {
             to={`/generate?template=${template.id}`}
             className="inline-flex items-center gap-2 h-10 px-6 rounded-xl text-sm font-bold text-white bg-gradient-brand shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:opacity-90 transition-all active:scale-95 shrink-0"
           >
-            Use this template
+            Use this prompt
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </Link>
         </div>

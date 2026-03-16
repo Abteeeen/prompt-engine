@@ -3,8 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 're
 import { ThemeToggle } from './components/ThemeToggle'
 import { Layout } from './components/layout/Layout'
 import { HomePage } from './pages/HomePage'
-import { TemplatesPage } from './pages/TemplatesPage'
-import { TemplatePage } from './pages/TemplatePage'
+import { DiscoverPage } from './pages/DiscoverPage'
+import { DiscoverDetailPage } from './pages/DiscoverDetailPage'
 import { GeneratorPage } from './pages/GeneratorPage'
 
 // Mobile bottom navigation component
@@ -41,9 +41,9 @@ function MobileNav() {
           )}
         </NavLink>
 
-        {/* Templates Tab */}
+        {/* Discover Tab */}
         <NavLink
-          to="/templates"
+          to="/discover"
           className={({ isActive }) =>
             `flex flex-col items-center gap-1 transition-colors relative ${isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'
             }`
@@ -55,8 +55,8 @@ function MobileNav() {
             <rect x="3" y="14" width="7" height="7" rx="1" />
             <rect x="14" y="14" width="7" height="7" rx="1" />
           </svg>
-          <span className="text-[10px]">Templates</span>
-          {currentPath === '/templates' && (
+          <span className="text-[10px]">Discover</span>
+          {currentPath === '/discover' && (
             <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[var(--accent-primary)]" />
           )}
         </NavLink>
@@ -94,8 +94,8 @@ export default function App() {
         <div className="pb-20 md:pb-0">
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/templates" element={<TemplatesPage />} />
-            <Route path="/templates/:id" element={<TemplatePage />} />
+            <Route path="/discover" element={<DiscoverPage />} />
+            <Route path="/discover/:id" element={<DiscoverDetailPage />} />
             <Route path="/generate" element={<GeneratorPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
