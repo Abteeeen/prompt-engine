@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { api } from '../services/api'
 import type { Template, QualityScore, GenerateResult } from '../types'
-import { TemplateCard } from '../components/TemplateCard'
 import { Link } from 'react-router-dom'
 import { discoverPrompts, type DiscoverPrompt } from '../data/discoverPrompts'
 import { DiscoverPage } from '../pages/DiscoverPage'
