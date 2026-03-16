@@ -6,6 +6,7 @@ import { HomePage } from './pages/HomePage'
 import { DiscoverPage } from './pages/DiscoverPage'
 import { DiscoverDetailPage } from './pages/DiscoverDetailPage'
 import { GeneratorPage } from './pages/GeneratorPage'
+import { AgentsPage } from './pages/AgentsPage'
 
 // Mobile bottom navigation component
 function MobileNav() {
@@ -37,6 +38,23 @@ function MobileNav() {
           </svg>
           <span className="text-[10px]">Generate</span>
           {currentPath === '/' && (
+            <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[var(--accent-primary)]" />
+          )}
+        </NavLink>
+
+        {/* Agents Tab */}
+        <NavLink
+          to="/agents"
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-1 transition-colors relative ${isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'
+            }`
+          }
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+          </svg>
+          <span className="text-[10px]">Agents</span>
+          {currentPath === '/agents' && (
             <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[var(--accent-primary)]" />
           )}
         </NavLink>
@@ -94,6 +112,7 @@ export default function App() {
         <div className="pb-20 md:pb-0">
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/agents" element={<AgentsPage />} />
             <Route path="/discover" element={<DiscoverPage />} />
             <Route path="/discover/:id" element={<DiscoverDetailPage />} />
             <Route path="/generate" element={<GeneratorPage />} />

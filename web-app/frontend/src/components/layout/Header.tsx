@@ -4,8 +4,9 @@ import { ThemeToggle } from '../ThemeToggle'
 
 const NAV = [
   { href: '/', label: 'Home', icon: '✨' },
+  { href: '/agents', label: 'Agents', icon: '⚡' },
   { href: '/discover', label: 'Discover', icon: '🚀' },
-  { href: '/generate', label: 'Generate', icon: '⚡' },
+  { href: '/generate', label: 'Generate', icon: '✨' },
 ]
 
 export function Header() {
