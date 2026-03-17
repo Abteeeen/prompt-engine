@@ -189,33 +189,37 @@ export default function ShipScene() {
         shipRef.current = object;
 
         // LOAD LUFFY AFTER SHIP IS READY
+        console.log('Ship loaded, starting Luffy load...');
         gltfLoader.load(
           '/characters/luffy/scene.gltf',
           (luffyGltf) => {
+            console.log('Luffy loaded successfully');
             const luffy = luffyGltf.scene;
             luffy.traverse((node) => {
               if ((node as THREE.Mesh).isMesh) {
                 node.castShadow = true;
                 node.receiveShadow = true;
-                // Identifying arms by name - based on inspection Object_13/14/15/16 usually are limbs
                 if (node.name.toLowerCase().includes('object_13') || node.name.toLowerCase().includes('object_14')) {
                    luffyArms.push(node);
                 }
               }
             });
             
-            luffy.scale.setScalar(0.005); // Initial tiny scale, adjust based on visual audit
-            luffy.position.set(0, 11, -12); // Position on the front deck area
-            luffy.rotation.y = Math.PI; // Face the camera
+            luffy.scale.setScalar(0.008); // Slightly larger for better hero presence
+            luffy.position.set(0, 11, -14); // Move slightly forward on the deck
+            luffy.rotation.y = Math.PI; 
             
             luffyGroup.add(luffy);
-            object.add(luffyGroup); // Parent to ship for movement sync
+            object.add(luffyGroup); 
 
-            // Warm light for Luffy
+            console.log('Luffy added to ship at:', luffy.position);
+
             const luffyLight = new THREE.PointLight(0xffcc88, isDay ? 0.2 : 1.2, 10);
-            luffyLight.position.set(0, 2, 0); // Relative to luffyGroup
+            luffyLight.position.set(0, 2, 0); 
             luffyGroup.add(luffyLight);
-          }
+          },
+          undefined,
+          (error) => console.error('Luffy Load Error:', error)
         );
       },
       undefined,
@@ -327,7 +331,6 @@ export default function ShipScene() {
       renderer.dispose();
       controls.dispose();
     };
-  }, []);
   }, []);
 
   return <div ref={containerRef} className="absolute inset-0 z-0 bg-transparent" />;

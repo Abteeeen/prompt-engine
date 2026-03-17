@@ -20,7 +20,10 @@ export default function AgentsPage() {
   const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
-    const handleLuffyClick = () => setShowPopup(true);
+    const handleLuffyClick = () => {
+      console.log('Luffy click event received in AgentsPage');
+      setShowPopup(true);
+    };
     window.addEventListener('luffy-clicked', handleLuffyClick);
     
     const interval = setInterval(() => {
