@@ -6,7 +6,7 @@ import { api } from '../services/api'
 
 import type { Template, QualityScore } from '../types'
 
-import { TemplateCard } from '../components/TemplateCard'
+import { PromptCard } from '../components/PromptCard'
 
 import { QualityScoreMini } from '../components/QualityScore'
 
@@ -1034,7 +1034,7 @@ function TemplatesPreview({ templates }: { templates: Template[] }) {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 overflow-hidden">
 
-        {templates.slice(0, 5).map(t => <TemplateCard key={t.id} template={t} />)}
+        {templates.slice(0, 5).map(t => <PromptCard key={t.id} template={t} />)}
 
       </div>
 
@@ -1042,7 +1042,7 @@ function TemplatesPreview({ templates }: { templates: Template[] }) {
 
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 overflow-hidden">
 
-        {templates.slice(5, 10).map(t => <TemplateCard key={t.id} template={t} compact />)}
+        {templates.slice(5, 10).map(t => <PromptCard key={t.id} template={t} compact />)}
 
       </div>
 
