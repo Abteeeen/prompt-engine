@@ -50,10 +50,14 @@ export default function AgentsPage() {
 
       {/* OVERLAY INFO: Centered, scrollable, and constrained popup */}
       {selectedPirate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-500">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center md:justify-end md:pr-12 lg:pr-32 p-4 sm:p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-500 cursor-pointer"
+          onClick={() => setActivePosterId(null)}
+        >
           <div 
-            className="bg-black/80 backdrop-blur-2xl border border-white/20 p-6 sm:p-10 rounded-[2rem] w-full max-w-[500px] max-h-[90vh] overflow-y-auto shadow-2xl relative animate-in zoom-in-95 slide-in-from-bottom-10 duration-700 pointer-events-auto"
+            className="bg-black/90 backdrop-blur-2xl border border-white/20 p-6 sm:p-10 rounded-[2rem] w-full max-w-[500px] max-h-[90vh] overflow-y-auto shadow-2xl relative animate-in zoom-in-95 slide-in-from-right-10 duration-700 cursor-default"
             style={{ scrollbarWidth: 'none' }}
+            onClick={(e) => e.stopPropagation()}
           >
              <div className="absolute top-6 left-6 w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-black font-black italic -rotate-12 shadow-lg shadow-orange-500/30">
                !

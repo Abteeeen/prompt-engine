@@ -1146,14 +1146,12 @@ export function HomePage() {
 
 
 
-        {/* Badge - Much smaller */}
-
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-6 animate-fade-in" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
-
-          <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-
-          <span className="text-[11px] font-medium text-purple-300 tracking-wide">Free AI prompt engineer</span>
-
+        {/* Badge - Much smaller, positioned for better balance */}
+        <div className="flex justify-center mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full animate-fade-in" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
+            <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse shadow-[0_0_10px_rgba(167,139,250,0.5)]" />
+            <span className="text-[12px] font-bold text-purple-200 tracking-wider">CREW SPECIAL: FREE AI PROMPT ENGINEER</span>
+          </div>
         </div>
 
 
@@ -1211,57 +1209,78 @@ export function HomePage() {
       {/* Templates */}
       <TemplatesPreview templates={templates} />
 
-      {/* Contact Section - Restored Premium Version */}
-      <section className="max-w-4xl mx-auto px-6 pb-32">
-        <div className="glass p-8 sm:p-12 relative overflow-hidden group">
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl group-hover:bg-purple-600/20 transition-all duration-700" />
-          
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
-            <div className="text-center md:text-left">
-              <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-3">Get in touch</p>
-              <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">Let&apos;s build the future <br /> of AI together</h2>
-              <p className="text-sm text-gray-500 max-w-sm mb-8">
-                Have questions about prompt engineering? Need help with our platform? 
-                Our team (the crew) is here to help you navigate.
-              </p>
-              
-              <div className="flex flex-wrap justify-center md:justify-start gap-4">
-                <a 
-                  href="mailto:abhiramanil@gmail.com" 
-                  className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs font-bold transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
-                >
-                  <span className="text-purple-400">✉</span> abhiramanil@gmail.com
-                </a>
-                <a 
-                  href="tel:+918547562600" 
-                  className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs font-bold transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
-                >
-                  <span className="text-purple-400">📞</span> +91 8547 562 600
-                </a>
-              </div>
+      {/* Contact Section - Restored Spiral Version */}
+      <section className="relative px-6 py-32 mt-10 overflow-hidden bg-transparent">
+        <div className="max-w-5xl mx-auto">
+          <div className="relative rounded-[2rem] p-12 md:p-16 overflow-hidden shadow-2xl transition-all duration-700 hover:shadow-purple-500/20"
+            style={{ 
+              background: 'rgba(15, 15, 20, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              backdropFilter: 'blur(30px)'
+            }}
+          >
+            {/* Animated Spiral / Blob Background */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] pointer-events-none opacity-30 z-0 scale-150">
+              <div 
+                className="absolute inset-0 rounded-full blur-[80px] mix-blend-screen"
+                style={{
+                  background: 'conic-gradient(from 0deg, #7c3aed, #06b6d4, #ea580c, #7c3aed)',
+                  animation: 'blob-spin 10s linear infinite'
+                }}
+              />
             </div>
 
-            <div className="w-full md:w-auto flex flex-col gap-4">
-              <div className="glass p-6 rounded-2xl flex-1 border-white/5 bg-white/[0.02]">
-                <h4 className="text-xs font-bold text-white mb-1 uppercase tracking-wider">Office Hours</h4>
-                <p className="text-[11px] text-gray-500 italic">"The crew never sleeps, but we reply mostly between <br /> 9:00 AM — 6:00 PM IST."</p>
+            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-12 text-center md:text-left">
+              {/* Left Side: Text */}
+              <div className="w-full md:w-1/2">
+                <p className="text-sm font-bold text-purple-400 uppercase tracking-widest mb-4">Got an idea?</p>
+                <h2 className="text-5xl sm:text-6xl font-black leading-tight text-white mb-8">
+                  Let&apos;s build something <span className="gradient-text block mt-2">amazing.</span>
+                </h2>
+                <a 
+                  href="mailto:abhiramaanil@gmail.com" 
+                  className="inline-flex items-center gap-3 px-8 py-4 rounded-full text-lg font-bold text-white transition-all transform hover:scale-105 active:scale-95"
+                  style={{
+                    background: 'linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%)',
+                    boxShadow: '0 10px 30px rgba(124, 58, 237, 0.3)'
+                  }}
+                >
+                  Start a Project
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                </a>
               </div>
-              <div className="flex gap-4">
-                <div className="glass p-4 rounded-xl flex-1 text-center border-white/5 group-hover:border-purple-500/20 transition-colors">
-                  <div className="text-lg mb-1">🐦</div>
-                  <p className="text-[10px] font-bold text-white/60">Twitter</p>
+
+              {/* Right Side: Socials & Contact Info */}
+              <div className="w-full md:w-1/2 flex flex-col sm:flex-row gap-6 justify-center md:justify-end">
+                <div className="glass p-6 rounded-2xl flex-1 max-w-[200px]" style={{ background: 'rgba(0,0,0,0.4)', borderColor: 'rgba(255,255,255,0.05)' }}>
+                  <p className="text-xs text-gray-400 uppercase tracking-widest mb-4 font-bold">Socials</p>
+                  <div className="flex flex-col gap-3">
+                    <a href="https://www.linkedin.com/in/abhiram-anil-092946223/" target="_blank" rel="noreferrer" className="text-sm font-medium text-white hover:text-purple-400 transition-colors flex items-center justify-between group">
+                      LinkedIn <span className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all">→</span>
+                    </a>
+                    <a href="https://www.instagram.com/__ab_10__/" target="_blank" rel="noreferrer" className="text-sm font-medium text-white hover:text-purple-400 transition-colors flex items-center justify-between group">
+                      Instagram <span className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all">→</span>
+                    </a>
+                  </div>
                 </div>
-                <div className="glass p-4 rounded-xl flex-1 text-center border-white/5 group-hover:border-purple-500/20 transition-colors">
-                  <div className="text-lg mb-1">🐙</div>
-                  <p className="text-[10px] font-bold text-white/60">GitHub</p>
+
+                <div className="glass p-6 rounded-2xl flex-1 max-w-[220px]" style={{ background: 'rgba(0,0,0,0.4)', borderColor: 'rgba(255,255,255,0.05)' }}>
+                  <p className="text-xs text-gray-400 uppercase tracking-widest mb-4 font-bold">Inquiries</p>
+                  <div className="flex flex-col gap-3 text-left">
+                    <a href="mailto:abhiramaanil@gmail.com" className="text-sm font-medium text-white hover:text-purple-400 transition-colors truncate block">
+                      abhiramaanil@gmail.com
+                    </a>
+                    <a href="tel:+918547562600" className="text-sm font-medium text-white hover:text-purple-400 transition-colors block">
+                      +91 8547 562 600
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-        
-        <div className="mt-16 text-center">
-          <p className="text-[10px] text-gray-600 uppercase tracking-[0.4em] font-medium">© 2026 Prompt Engineering Science. Built by the Crew.</p>
+          <div className="mt-16 text-center">
+            <p className="text-[10px] text-gray-600 uppercase tracking-[0.4em] font-medium">© 2026 Prompt Engineering Science. Built by the Crew.</p>
+          </div>
         </div>
       </section>
     </div>

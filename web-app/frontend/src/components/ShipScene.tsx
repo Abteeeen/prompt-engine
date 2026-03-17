@@ -105,7 +105,6 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     scene.add(posterGroup);
 
     STRAW_HATS.forEach((pirate, idx) => {
-      const geometry = new THREE.PlaneGeometry(3.5, 5);
       // Use MeshBasicMaterial but ensure renderer toneMapping is off for exact color reproduction
       const material = new THREE.MeshBasicMaterial({ 
         map: textureLoader.load(pirate.image),
@@ -114,17 +113,18 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
         opacity: 0.98, // Slightly more solid for better color pop
         fog: false // Prevent fog from washing colors away
       });
+      const geometry = new THREE.PlaneGeometry(3.2, 4.6); // Large enough to be easily interactive
       const mesh = new THREE.Mesh(geometry, material);
       
-      // Step 1: Initial Placement (Left side, spaced along Z)
-      // Camera is at 40,25,40. Left of the scene from this view is towards -X or -Z.
-      // Let's put them at X = -15, as requested, but ensure they aren't hidden.
-      const startX = -18;
-      const startZ = -15 + idx * 4;
-      const startY = 10;
+      // Step 1: Initial Placement (Proximal rail, spaced along Z)
+      const isEven = idx % 2 === 0;
+      // Moved further out to X=22-24 to avoid ship bulk occlusion
+      const startX = isEven ? 22.0 : 25.0; 
+      const startZ = -14 + idx * 5.2; 
+      const startY = 10.0; 
       
       mesh.position.set(startX, startY, startZ);
-      mesh.rotation.y = Math.PI / 4; // Angled towards the camera
+      mesh.rotation.y = -Math.PI / 4 + (isEven ? -0.1 : 0.1);
       
       mesh.userData = { 
         id: pirate.id, 
@@ -210,8 +210,14 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
       const isActive = id === activePosterId;
       
       if (isActive) {
+        // Find a position that is to the LEFT of the camera's view center
         const camDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-        const targetPos = camera.position.clone().add(camDir.multiplyScalar(10));
+        const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+        
+        // Target: 8 units in front, 3.0 units to the LEFT
+        const targetPos = camera.position.clone()
+          .add(camDir.multiplyScalar(8))
+          .add(camRight.multiplyScalar(-3.0));
         
         gsap.to(mesh.position, {
           x: targetPos.x, y: targetPos.y, z: targetPos.z,
@@ -221,12 +227,12 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
         gsap.to(mesh.rotation, {
           x: camera.rotation.x, 
           y: camera.rotation.y, 
-          z: camera.rotation.z + (Math.random() * 0.2 - 0.1),
+          z: camera.rotation.z,
           duration: 1.4, ease: "back.out(1.2)"
         });
         
         gsap.to(mesh.scale, {
-          x: 2.8, y: 2.8, z: 2.8,
+          x: 2.2, y: 2.2, z: 2.2,
           duration: 1.4, ease: "back.out(1.5)"
         });
 
