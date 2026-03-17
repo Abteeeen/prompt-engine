@@ -14,9 +14,21 @@ export default function ShipScene() {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // 0. DYNAMIC TIME CALCULATIONS
+    const hour = new Date().getHours();
+    const isDay = hour >= 6 && hour < 18;
+    
+    const skyColor = isDay ? 0x88ccff : 0x000308;
+    const fogDensity = isDay ? 0.001 : 0.002;
+    const waterColorVal = isDay ? 0x004466 : 0x00101a;
+    const sunColorVal = isDay ? 0xffffaa : 0xbbccff;
+    const ambientIntensity = isDay ? 0.4 : 0.15;
+    const mainLightIntensity = isDay ? 2.5 : 1.2;
+
     // 1. SCENE SETUP
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x000308, 0.002); // Deep night fog
+    scene.background = new THREE.Color(skyColor); // Set background for day sky
+    scene.fog = new THREE.FogExp2(skyColor, fogDensity);
 
     const camera = new THREE.PerspectiveCamera(
       45,
@@ -25,7 +37,8 @@ export default function ShipScene() {
       2000
     );
     
-    camera.position.set(62, 18, 0); 
+    // Zoom even closer for true hero shot (from 55 to 45)
+    camera.position.set(45, 14, 0); 
     camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({
@@ -39,7 +52,7 @@ export default function ShipScene() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0; 
+    renderer.toneMappingExposure = 1.25; // Brighter for cinematic pop
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     
     containerRef.current.appendChild(renderer.domElement);
@@ -54,10 +67,10 @@ export default function ShipScene() {
         waterNormals: new THREE.TextureLoader().load('/textures/waternormals.jpg', function (texture) {
           texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         }),
-        sunDirection: new THREE.Vector3(30, 50, 40).normalize(),
-        sunColor: 0xbbccff, // Cooler moonlight color
-        waterColor: 0x00101a, // Even deeper night blue
-        distortionScale: 3.0, // More subtle
+        sunDirection: new THREE.Vector3(isDay ? 100 : 30, isDay ? 100 : 50, isDay ? 50 : 40).normalize(),
+        sunColor: sunColorVal,
+        waterColor: waterColorVal,
+        distortionScale: 3.5, // slightly more distortion for realistic surf
         clipBias: 0.0001,
         alpha: 1.0
       }
@@ -67,40 +80,41 @@ export default function ShipScene() {
     scene.add(water);
     waterRef.current = water;
 
-    // 3. LIGHTING (Night - Cinematic Atmosphere)
-    const moon = new THREE.DirectionalLight(0x8899bb, 1.2);
-    moon.position.set(30, 50, 40);
-    moon.castShadow = true;
-    moon.shadow.mapSize.width = 2048;
-    moon.shadow.mapSize.height = 2048;
-    moon.shadow.camera.near = 0.5;
-    moon.shadow.camera.far = 300;
+    // 3. LIGHTING (Dynamic Day/Night)
+    const mainLight = new THREE.DirectionalLight(sunColorVal, mainLightIntensity);
+    mainLight.position.set(isDay ? 100 : 30, isDay ? 100 : 50, isDay ? 50 : 40);
+    mainLight.castShadow = true;
+    mainLight.shadow.mapSize.width = 2048;
+    mainLight.shadow.mapSize.height = 2048;
+    mainLight.shadow.camera.near = 0.5;
+    mainLight.shadow.camera.far = 500;
     const sSize = 60;
-    moon.shadow.camera.left = -sSize;
-    moon.shadow.camera.right = sSize;
-    moon.shadow.camera.top = sSize;
-    moon.shadow.camera.bottom = -sSize;
-    scene.add(moon);
+    mainLight.shadow.camera.left = -sSize;
+    mainLight.shadow.camera.right = sSize;
+    mainLight.shadow.camera.top = sSize;
+    mainLight.shadow.camera.bottom = -sSize;
+    scene.add(mainLight);
 
-    const lantern1 = new THREE.PointLight(0xffaa44, 1.4, 60);
+    // Lanterns (Always on but dim during day)
+    const lantern1 = new THREE.PointLight(0xffaa44, isDay ? 0.3 : 1.4, 60);
     lantern1.position.set(5, 12, 5);
     lantern1.castShadow = true;
     scene.add(lantern1);
 
-    const lantern2 = new THREE.PointLight(0xff8822, 0.9, 50);
+    const lantern2 = new THREE.PointLight(0xff8822, isDay ? 0.2 : 0.9, 50);
     lantern2.position.set(-5, 10, -5);
     lantern2.castShadow = true;
     scene.add(lantern2);
 
-    const fillLight = new THREE.DirectionalLight(0x445577, 0.3); // Cool fill
+    const fillLight = new THREE.DirectionalLight(isDay ? 0xffffff : 0x445577, 0.4); // Cool fill
     fillLight.position.set(-50, 20, -50);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0x8899bb, 0.2);
+    const rimLight = new THREE.DirectionalLight(sunColorVal, 0.3);
     rimLight.position.set(0, 5, -50);
     scene.add(rimLight);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.1); 
+    const ambient = new THREE.AmbientLight(0xffffff, ambientIntensity); 
     scene.add(ambient);
 
     // 4. CONTROLS
@@ -110,7 +124,7 @@ export default function ShipScene() {
     controls.screenSpacePanning = false;
     controls.minPolarAngle = Math.PI / 6;
     controls.maxPolarAngle = Math.PI / 2.1;
-    controls.minDistance = 30;
+    controls.minDistance = 20; // Allow closer zoom
     controls.maxDistance = 150;
     controls.target.set(0, 5, 0);
     controlsRef.current = controls;
@@ -144,7 +158,7 @@ export default function ShipScene() {
              'water', 'ocean', 'sea', 'plane', 'liquid', 'wave', 'river', 
              'ground', 'stand', 'floor', 'base', 'environment', 'island', 
              'mountain', 'rock', 'sky', 'cloud', 'background', 'nature',
-             'material.015', 'cube013'
+             'material.015', 'material.017', 'material_7', 'cube013', 'cube015'
           ];
           const isKnownEnv = envKeywords.some(key => name.includes(key) || materialName.includes(key));
           const isFacetedWater = (size.x > 30 && size.z > 30 && size.y < 5);
@@ -230,7 +244,8 @@ export default function ShipScene() {
       if (controlsRef.current) controlsRef.current.update();
       
       if (waterRef.current) {
-        waterRef.current.material.uniforms[ 'time' ].value += 1.0 / 240.0;
+        // ENHANCED REALISM SPEED (1/150 for more motion)
+        waterRef.current.material.uniforms[ 'time' ].value += 1.0 / 150.0;
       }
 
       // Update Spray
