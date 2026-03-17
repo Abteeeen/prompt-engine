@@ -29,6 +29,8 @@ const STRAW_HATS = [
 export default function AgentsPage() {
   const [logIndex, setLogIndex] = useState(0);
   const [activePosterId, setActivePosterId] = useState<string | null>(null);
+  const [showFlash, setShowFlash] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -38,70 +40,102 @@ export default function AgentsPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Trigger cinematic entrance effects
+  useEffect(() => {
+    if (activePosterId && !isExiting) {
+      setShowFlash(true);
+      const timer = setTimeout(() => setShowFlash(false), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [activePosterId, isExiting]);
+
+  const handleDismiss = () => {
+    setIsExiting(true);
+    setTimeout(() => {
+      setActivePosterId(null);
+      setIsExiting(false);
+    }, 400); // Match cut-to-black duration
+  };
+
   const selectedPirate = STRAW_HATS.find(p => p.id === activePosterId);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#000308] font-sans selection:bg-orange-500/30 text-white">
+    <div className={`relative w-full h-screen overflow-hidden bg-[#000308] font-sans selection:bg-orange-500/30 text-white ${activePosterId && !isExiting ? 'animate-screen-shake' : ''}`}>
+      {/* Cinematic White Flash on Impact */}
+      {showFlash && <div className="fixed inset-0 z-[100] bg-white animate-white-flash pointer-events-none" />}
+
       {/* NATIVE 3D CINEMATIC OCEAN, SHIP, AND DYNAMIC 3D POSTERS */}
       <ShipScene 
         activePosterId={activePosterId} 
-        onPosterToggle={(id) => setActivePosterId(prevId => prevId === id ? null : id)} 
+        onPosterToggle={(id) => id ? setActivePosterId(id) : handleDismiss()} 
       />
 
-      {/* OVERLAY INFO: Centered, scrollable, and constrained popup */}
+      {/* CINEMATIC TITLE CARD OVERLAY */}
       {selectedPirate && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center md:justify-end md:pr-12 lg:pr-32 p-4 sm:p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-500 cursor-pointer"
-          onClick={() => setActivePosterId(null)}
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 bg-black/40 backdrop-blur-sm pointer-events-none ${isExiting ? 'animate-cut-to-black' : 'animate-in fade-in duration-500'}`}
+          onClick={handleDismiss}
         >
-          <div 
-            className="bg-black/90 backdrop-blur-2xl border border-white/20 p-6 sm:p-10 rounded-[2rem] w-full max-w-[500px] max-h-[90vh] overflow-y-auto shadow-2xl relative animate-in zoom-in-95 slide-in-from-right-10 duration-700 cursor-default"
-            style={{ scrollbarWidth: 'none' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-             <div className="absolute top-6 left-6 w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-black font-black italic -rotate-12 shadow-lg shadow-orange-500/30">
-               !
-             </div>
-             
-             <div className="mt-8">
-               <h2 className="text-3xl sm:text-4xl font-black italic uppercase mb-1 tracking-tighter text-white">
-                 {selectedPirate.name}
-               </h2>
-               <div className="flex items-center gap-2 mb-6">
-                  <span className="text-orange-400 font-mono text-sm uppercase tracking-[0.3em]">Bounty: {selectedPirate.bounty}</span>
-                  <div className="h-[1px] flex-1 bg-white/10" />
+          <div className="relative w-full max-w-6xl h-full max-h-[85vh] flex flex-col md:flex-row gap-12 items-center justify-center pointer-events-auto">
+            
+            {/* POSTER LAYER - Crystall Clear, No Backdrop Filter */}
+            <div className={`relative flex-1 h-full max-h-[75vh] min-h-[400px] aspect-[2/3] movie-letterbox overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-white/10 ${isExiting ? '' : 'animate-slam-in'}`}>
+              <img 
+                src={selectedPirate.image} 
+                alt={selectedPirate.name}
+                className="w-full h-full object-cover"
+                style={{ filter: 'contrast(1.1) brightness(1.05)', opacity: 1 }}
+              />
+              <div className="film-grain-overlay" />
+              <div className="absolute inset-0 poster-vignette" />
+            </div>
+
+            {/* INFO LAYER - Slide up with fade */}
+            <div 
+              className={`flex-1 flex flex-col justify-center max-w-xl animate-in slide-in-from-bottom-20 fade-in duration-1000 delay-300 ${isExiting ? 'opacity-0' : ''}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+               <div className="mb-4">
+                 <h2 className="text-5xl sm:text-7xl font-black italic uppercase tracking-tighter text-white animate-typewriter inline-block">
+                   {selectedPirate.name}
+                 </h2>
+                 <div className="h-2 w-full bg-orange-500 mt-2 animate-draw-line" />
                </div>
                
-               <div className="space-y-6">
-                 <p className="text-white/80 text-lg leading-relaxed font-serif italic antialiased">
+               <div className="flex items-center gap-4 mb-8">
+                  <span className="text-orange-400 font-mono text-2xl uppercase tracking-[0.4em] font-bold">Bounty: {selectedPirate.bounty}</span>
+               </div>
+               
+               <div className="space-y-10">
+                 <p className="text-white/95 text-2xl leading-relaxed font-serif italic antialiased drop-shadow-2xl">
                    "Navigating the uncharted waters of the Grand Line. This pirate will return to the deck once the bounty is secured."
                  </p>
                  
-                 <div className="py-6 border-y border-white/10 text-white/60 text-sm leading-relaxed">
-                   <p className="mb-4">
-                     <span className="text-orange-400/80 font-bold uppercase tracking-widest text-[10px] block mb-1">Mission Log:</span>
+                 <div className="py-8 border-y border-white/10 text-white/70 text-lg leading-relaxed glass p-8 rounded-3xl">
+                   <p className="mb-6">
+                     <span className="text-orange-500 font-bold uppercase tracking-widest text-xs block mb-2">Mission Log:</span>
                      Current coordinates: Grand Line - Sector 7. Deployment specialized in complex prompt architectures and tactical SEO maneuvers.
                    </p>
                    <p>
-                     <span className="text-orange-400/80 font-bold uppercase tracking-widest text-[10px] block mb-1">Status Report:</span>
+                     <span className="text-orange-500 font-bold uppercase tracking-widest text-xs block mb-2">Status Report:</span>
                      Weaponry (Prompts) fully optimized for all LLM classes. Expect return upon completion of project milestone.
                    </p>
                  </div>
                </div>
 
-               <div className="flex items-center justify-between mt-10">
-                  <div className="flex items-center gap-3">
-                     <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50" />
-                     <span className="text-xs text-white/40 uppercase tracking-[0.2em] font-bold">In Deployment</span>
+               <div className="flex items-center justify-between mt-12">
+                  <div className="flex items-center gap-4">
+                     <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.6)]" />
+                     <span className="text-sm text-white/60 uppercase tracking-[0.25em] font-black">In Deployment</span>
                   </div>
                   <button 
-                    onClick={() => setActivePosterId(null)}
-                    className="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-black rounded-full text-xs uppercase font-black tracking-widest transition-all hover:scale-105 active:scale-95 shadow-lg shadow-orange-500/20"
+                    onClick={handleDismiss}
+                    className="px-12 py-4 bg-white text-black hover:bg-orange-500 hover:text-white rounded-none font-black uppercase tracking-[0.3em] transition-all hover:scale-105 active:scale-95 shadow-2xl border-2 border-black"
                   >
                     Dismiss
                   </button>
                </div>
-             </div>
+            </div>
           </div>
         </div>
       )}
