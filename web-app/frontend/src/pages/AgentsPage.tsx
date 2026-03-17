@@ -17,20 +17,78 @@ const LOG_MESSAGES = [
 
 export default function AgentsPage() {
   const [logIndex, setLogIndex] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
-    setIsVisible(true);
+    const handleLuffyClick = () => setShowPopup(true);
+    window.addEventListener('luffy-clicked', handleLuffyClick);
+    
     const interval = setInterval(() => {
       setLogIndex((prev) => (prev + 1) % LOG_MESSAGES.length);
     }, 4000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      window.removeEventListener('luffy-clicked', handleLuffyClick);
+      clearInterval(interval);
+    };
   }, []);
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-[#000308] font-sans selection:bg-violet-500/30">
       {/* NATIVE 3D CINEMATIC OCEAN & SHIP */}
       <ShipScene />
+
+      {/* CHARACTER POPUP */}
+      {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="relative w-full max-w-md bg-[#000814]/90 border border-white/10 rounded-3xl p-8 backdrop-blur-2xl shadow-2xl shadow-blue-500/10 animate-in zoom-in-95 duration-300">
+            <button 
+              onClick={() => setShowPopup(false)}
+              className="absolute top-6 right-6 text-white/40 hover:text-white transition-colors"
+            >
+              <span className="text-xl">✕</span>
+            </button>
+            
+            <div className="flex flex-col items-center text-center">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-orange-500 to-red-500 p-1 mb-6 shadow-lg shadow-orange-500/20">
+                <div className="w-full h-full rounded-full bg-[#000814] flex items-center justify-center text-4xl">
+                  👒
+                </div>
+              </div>
+              
+              <h2 className="text-2xl font-bold text-white mb-1 tracking-tight">Monkey D. Luffy</h2>
+              <p className="text-orange-400 font-mono text-xs uppercase tracking-[0.3em] mb-6">The Idea Agent</p>
+              
+              <div className="w-full space-y-4 text-left">
+                <div className="bg-white/5 border border-white/5 rounded-2xl p-4">
+                  <h3 className="text-white/40 text-[10px] uppercase tracking-wider mb-2">Primary Objective</h3>
+                  <p className="text-white/80 text-sm leading-relaxed">
+                    Transforming raw concepts into legendary prompt architectures. Exploring the Sea of Innovation to find the One Piece of perfect output.
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white/5 border border-white/5 rounded-2xl p-4">
+                    <h3 className="text-white/40 text-[10px] uppercase tracking-wider mb-1">Status</h3>
+                    <p className="text-green-400 text-sm font-semibold">Ready to Sail</p>
+                  </div>
+                  <div className="bg-white/5 border border-white/5 rounded-2xl p-4">
+                    <h3 className="text-white/40 text-[10px] uppercase tracking-wider mb-1">Morale</h3>
+                    <p className="text-orange-400 text-sm font-semibold">Meat Obsessed</p>
+                  </div>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => setShowPopup(false)}
+                className="mt-8 w-full py-4 bg-white text-black font-bold rounded-2xl hover:bg-white/90 transition-all active:scale-[0.98]"
+              >
+                Set Sail
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* HUD: TOP BAR */}
       <header className="fixed top-0 left-0 w-full h-[52px] z-20 flex items-center justify-between px-4 sm:px-8 bg-gradient-to-b from-[#000510]/90 to-transparent">

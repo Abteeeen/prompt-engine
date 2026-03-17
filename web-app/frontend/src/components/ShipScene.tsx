@@ -130,20 +130,25 @@ export default function ShipScene() {
     controlsRef.current = controls;
 
     // 5. MODEL LOADING
+    // 5. MODEL LOADING
     const gltfLoader = new GLTFLoader();
+    
+    // Luffy specific refs for animation/interaction
+    const luffyGroup = new THREE.Group();
+    const luffyArms: THREE.Object3D[] = [];
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
     gltfLoader.load(
       '/models/sunny/glTF/scene.gltf',
       (gltf) => {
         const object = gltf.scene;
-        
         object.traverse((child: THREE.Object3D) => {
           const name = child.name;
           const mesh = child as THREE.Mesh;
           const mat = mesh.isMesh ? (mesh.material as THREE.Material) : null;
           const materialName = mat && mat.name ? mat.name : '';
           
-          // SURGICAL REMOVAL OF INBUILT WATER ONLY
-          // User identified: name="Cube013" (parent) and "Cube013_Material015_0" (child)
           if (name.includes('Cube013') || materialName.includes('Material.015')) {
             child.visible = false;
             if (mesh.isMesh) {
@@ -158,7 +163,6 @@ export default function ShipScene() {
           mesh.castShadow = true;
           mesh.receiveShadow = true;
 
-          // SPRAY/FOAM Logic (Keeping the nice transparency for these specific materials)
           if (materialName.includes('018') || materialName.includes('019')) {
              const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
              materials.forEach(m => {
@@ -183,10 +187,53 @@ export default function ShipScene() {
         object.userData.baseY = baseY; 
         scene.add(object);
         shipRef.current = object;
+
+        // LOAD LUFFY AFTER SHIP IS READY
+        gltfLoader.load(
+          '/characters/luffy/scene.gltf',
+          (luffyGltf) => {
+            const luffy = luffyGltf.scene;
+            luffy.traverse((node) => {
+              if ((node as THREE.Mesh).isMesh) {
+                node.castShadow = true;
+                node.receiveShadow = true;
+                // Identifying arms by name - based on inspection Object_13/14/15/16 usually are limbs
+                if (node.name.toLowerCase().includes('object_13') || node.name.toLowerCase().includes('object_14')) {
+                   luffyArms.push(node);
+                }
+              }
+            });
+            
+            luffy.scale.setScalar(0.005); // Initial tiny scale, adjust based on visual audit
+            luffy.position.set(0, 11, -12); // Position on the front deck area
+            luffy.rotation.y = Math.PI; // Face the camera
+            
+            luffyGroup.add(luffy);
+            object.add(luffyGroup); // Parent to ship for movement sync
+
+            // Warm light for Luffy
+            const luffyLight = new THREE.PointLight(0xffcc88, isDay ? 0.2 : 1.2, 10);
+            luffyLight.position.set(0, 2, 0); // Relative to luffyGroup
+            luffyGroup.add(luffyLight);
+          }
+        );
       },
       undefined,
       (error) => console.error('glTF Load Error:', error)
     );
+
+    // Interaction handler
+    const handleClick = (event: MouseEvent) => {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      
+      const intersects = raycaster.intersectObjects(luffyGroup.children, true);
+      if (intersects.length > 0) {
+        window.dispatchEvent(new CustomEvent('luffy-clicked'));
+      }
+    };
+    window.addEventListener('click', handleClick);
 
     // 6. SPRAY PARTICLES (Native 3D)
     const sprayCount = 1000;
@@ -222,7 +269,6 @@ export default function ShipScene() {
       if (controlsRef.current) controlsRef.current.update();
       
       if (waterRef.current) {
-        // ENHANCED REALISM SPEED (1/150 for more motion)
         waterRef.current.material.uniforms[ 'time' ].value += 1.0 / 150.0;
       }
 
@@ -232,11 +278,7 @@ export default function ShipScene() {
         positions[i * 3] += sprayVelocities[i * 3];
         positions[i * 3 + 1] += sprayVelocities[i * 3 + 1];
         positions[i * 3 + 2] += sprayVelocities[i * 3 + 2];
-        
-        // Gravity
         sprayVelocities[i * 3 + 1] -= 0.001;
-        
-        // Reset
         if (positions[i * 3 + 1] < -5.5) {
           positions[i * 3] = (Math.random() - 0.5) * 40;
           positions[i * 3 + 1] = -5;
@@ -254,6 +296,17 @@ export default function ShipScene() {
         shipRef.current.position.y = baseY + bobDisplacement;
         shipRef.current.rotation.z = (rawWaveY * 0.0012) + Math.sin(t * 0.5) * 0.01;
         shipRef.current.rotation.x = Math.cos(t * 0.4) * 0.015;
+
+        // LUFFY ANIMATION
+        if (luffyGroup.children.length > 0) {
+            // Slight sway/bob
+            luffyGroup.position.y = Math.sin(t * 2) * 0.1;
+            
+            // Arm swing
+            luffyArms.forEach((arm, idx) => {
+              arm.rotation.x = Math.sin(t * 3 + (idx * Math.PI)) * 0.2;
+            });
+        }
       }
 
       renderer.render(scene, camera);
@@ -269,10 +322,12 @@ export default function ShipScene() {
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('click', handleClick);
       containerRef.current?.removeChild(renderer.domElement);
       renderer.dispose();
       controls.dispose();
     };
+  }, []);
   }, []);
 
   return <div ref={containerRef} className="absolute inset-0 z-0 bg-transparent" />;
