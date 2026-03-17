@@ -195,6 +195,27 @@ export default function ShipScene() {
           (luffyGltf) => {
             console.log('Luffy loaded successfully');
             const luffy = luffyGltf.scene;
+            
+            // 1. CALCULATE AUTOMATIC SCALE (Target Height: 3 units)
+            const box = new THREE.Box3().setFromObject(luffy);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            const originalHeight = size.y;
+            const scaleFactor = 3 / originalHeight;
+            
+            console.log('--- Luffy Model Metrics ---');
+            console.log('Original Size:', size);
+            console.log('Calculated Scale Factor (for 3u height):', scaleFactor);
+            
+            luffy.scale.setScalar(scaleFactor);
+            
+            // 2. CENTER PIVOT (so (0,0,0) is his feet/center)
+            luffy.position.sub(center); // Offset by center
+            luffy.position.y += size.y / 2; // Move up so pivot is at feet
+            
+            luffy.rotation.y = Math.PI; 
+            
+            luffyArms.length = 0; // Clear previous refs
             luffy.traverse((node) => {
               if ((node as THREE.Mesh).isMesh) {
                 node.castShadow = true;
@@ -205,14 +226,11 @@ export default function ShipScene() {
               }
             });
             
-            luffy.scale.setScalar(0.008); // Slightly larger for better hero presence
-            luffy.position.set(0, 11, -14); // Move slightly forward on the deck
-            luffy.rotation.y = Math.PI; 
-            
             luffyGroup.add(luffy);
             object.add(luffyGroup); 
-
-            console.log('Luffy added to ship at:', luffy.position);
+            
+            // Initial position on ship deck
+            luffyGroup.position.set(0, 11, -15);
 
             const luffyLight = new THREE.PointLight(0xffcc88, isDay ? 0.2 : 1.2, 10);
             luffyLight.position.set(0, 2, 0); 
@@ -232,7 +250,8 @@ export default function ShipScene() {
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
       raycaster.setFromCamera(mouse, camera);
       
-      const intersects = raycaster.intersectObjects(luffyGroup.children, true);
+      // Check recursively against the entire group
+      const intersects = raycaster.intersectObject(luffyGroup, true);
       if (intersects.length > 0) {
         window.dispatchEvent(new CustomEvent('luffy-clicked'));
       }
@@ -302,9 +321,9 @@ export default function ShipScene() {
         shipRef.current.rotation.x = Math.cos(t * 0.4) * 0.015;
 
         // LUFFY ANIMATION
-        if (luffyGroup.children.length > 0) {
-            // Slight sway/bob
-            luffyGroup.position.y = Math.sin(t * 2) * 0.1;
+        if (luffyGroup) {
+            // Slight sway/bob relative to his standing position (Y: 14)
+            luffyGroup.position.y = 14 + Math.sin(t * 2) * 0.05;
             
             // Arm swing
             luffyArms.forEach((arm, idx) => {

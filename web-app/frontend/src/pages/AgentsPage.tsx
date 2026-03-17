@@ -19,6 +19,8 @@ export default function AgentsPage() {
   const [logIndex, setLogIndex] = useState(0);
   const [showPopup, setShowPopup] = useState(false);
 
+  console.log('AgentsPage state - showPopup:', showPopup);
+
   useEffect(() => {
     const handleLuffyClick = () => {
       console.log('Luffy click event received in AgentsPage');
@@ -43,13 +45,13 @@ export default function AgentsPage() {
 
       {/* CHARACTER POPUP */}
       {showPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative w-full max-w-md bg-[#000814]/90 border border-white/10 rounded-3xl p-8 backdrop-blur-2xl shadow-2xl shadow-blue-500/10 animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all duration-300">
+          <div className="relative w-full max-w-md bg-[#000814]/95 border border-white/10 rounded-3xl p-8 backdrop-blur-2xl shadow-2xl shadow-blue-500/20 transition-all duration-500 transform scale-100 opacity-100">
             <button 
               onClick={() => setShowPopup(false)}
-              className="absolute top-6 right-6 text-white/40 hover:text-white transition-colors"
+              className="absolute top-6 right-6 text-white/40 hover:text-white transition-colors p-2"
             >
-              <span className="text-xl">✕</span>
+              <span className="text-xl leading-none">✕</span>
             </button>
             
             <div className="flex flex-col items-center text-center">
