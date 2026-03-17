@@ -137,22 +137,23 @@ export default function ShipScene() {
         const object = gltf.scene;
         
         object.traverse((child: THREE.Object3D) => {
-          if (!(child as THREE.Mesh).isMesh) return;
+          const name = child.name;
           const mesh = child as THREE.Mesh;
-          const name = mesh.name;
-          const mat = mesh.material as THREE.Material;
+          const mat = mesh.isMesh ? (mesh.material as THREE.Material) : null;
           const materialName = mat && mat.name ? mat.name : '';
           
           // SURGICAL REMOVAL OF INBUILT WATER ONLY
-          // User identified: name="Cube013_Material015_0", material="Material.015"
+          // User identified: name="Cube013" (parent) and "Cube013_Material015_0" (child)
           if (name.includes('Cube013') || materialName.includes('Material.015')) {
-            mesh.visible = false;
-            mesh.castShadow = false;
-            mesh.receiveShadow = false;
+            child.visible = false;
+            if (mesh.isMesh) {
+              mesh.castShadow = false;
+              mesh.receiveShadow = false;
+            }
             return;
           }
 
-          // ALL OTHER PARTS: Ensure they are visible and cast shadows
+          if (!mesh.isMesh) return;
           mesh.visible = true;
           mesh.castShadow = true;
           mesh.receiveShadow = true;
