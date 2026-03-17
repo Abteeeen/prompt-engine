@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import ShipScene from '../components/ShipScene';
-import { OceanCanvas } from '../components/OceanCanvas';
 
 const LOG_MESSAGES = [
   "Sailing through the silent night of the Grand Line...",
@@ -15,23 +14,21 @@ const LOG_MESSAGES = [
   "The wind of creativity is blowing strongly",
 ];
 
-import { WantedPoster } from '../components/WantedPoster';
-
 const STRAW_HATS = [
-  { name: "Monkey D. Luffy", bounty: "3,000,000,000" },
-  { name: "Roronoa Zoro", bounty: "1,111,000,000" },
-  { name: "Jinbe", bounty: "1,100,000,000" },
-  { name: "Sanji", bounty: "1,032,000,000" },
-  { name: "Nico Robin", bounty: "930,000,000" },
-  { name: "Usopp", bounty: "500,000,000" },
-  { name: "Franky", bounty: "394,000,000" },
-  { name: "Brook", bounty: "383,000,000" },
-  { name: "Nami", bounty: "366,000,000" },
-  { name: "Tony Tony Chopper", bounty: "1,000" },
+  { id: "luffy", name: "Monkey D. Luffy", bounty: "3,000,000,000", image: "/assets/posters/luffy.png" },
+  { id: "zoro", name: "Roronoa Zoro", bounty: "1,111,000,000", image: "/assets/posters/zoro.png" },
+  { id: "nami", name: "Nami", bounty: "366,000,000", image: "/assets/posters/nami.png" },
+  { id: "usopp", name: "Usopp", bounty: "500,000,000", image: "/assets/posters/usopp.png" },
+  { id: "sanji", name: "Sanji", bounty: "1,032,000,000", image: "/assets/posters/sanji.png" },
+  { id: "chopper", name: "Chopper", bounty: "1,000", image: "/assets/posters/chopper.png" },
+  { id: "robin", name: "Robin", bounty: "930,000,000", image: "/assets/posters/robin.png" },
+  { id: "franky", name: "Franky", bounty: "394,000,000", image: "/assets/posters/franky_poster.png" },
+  { id: "brook", name: "Brook", bounty: "383,000,000", image: "/assets/posters/brook_poster.png" },
 ];
 
 export default function AgentsPage() {
   const [logIndex, setLogIndex] = useState(0);
+  const [activePosterId, setActivePosterId] = useState<string | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -41,97 +38,75 @@ export default function AgentsPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const selectedPirate = STRAW_HATS.find(p => p.id === activePosterId);
+
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#000308] font-sans selection:bg-orange-500/30">
-      {/* NATIVE 3D CINEMATIC OCEAN & SHIP */}
-      <ShipScene />
+    <div className="relative w-full h-screen overflow-hidden bg-[#000308] font-sans selection:bg-orange-500/30 text-white">
+      {/* NATIVE 3D CINEMATIC OCEAN, SHIP, AND DYNAMIC 3D POSTERS */}
+      <ShipScene 
+        activePosterId={activePosterId} 
+        onPosterToggle={(id) => setActivePosterId(prevId => prevId === id ? null : id)} 
+      />
 
-      {/* "ON A MISSION" OVERLAY */}
-      <div className="fixed inset-0 z-10 flex flex-col justify-end pointer-events-none">
-        <div className="w-full bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-32 pb-24 px-6 pointer-events-auto">
-          <div className="max-w-7xl mx-auto">
-            {/* Header Messaging */}
-            <div className="mb-8 text-center sm:text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 mb-3">
-                 <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
-                 <span className="text-[10px] text-orange-400 font-bold uppercase tracking-widest">In Development</span>
-              </div>
-              <h2 className="text-3xl sm:text-5xl font-black text-white mb-2 tracking-tighter uppercase italic">Crew on a Mission</h2>
-              <p className="text-white/40 text-sm max-w-lg mb-8 leading-relaxed">
-                The prompt engineering agents are currently onboarding or out on a high-stakes mission in the Grand Line. They will be joining the ship soon.
-              </p>
-            </div>
-
-            {/* Wanted Posters Row */}
-            <div className="flex gap-4 overflow-x-auto pb-8 no-scrollbar -mx-6 px-6 mask-fade-edges">
-              {STRAW_HATS.map((pirate) => (
-                <div key={pirate.name} className="w-[140px] sm:w-[180px] shrink-0">
-                  <WantedPoster name={pirate.name} bounty={pirate.bounty} />
+      {/* OVERLAY INFO: High-End cinematic text overlay */}
+      {selectedPirate && (
+        <div className="fixed bottom-12 right-12 z-50 animate-in fade-in slide-in-from-right-10 duration-1000 delay-500 pointer-events-none">
+          <div className="bg-black/60 backdrop-blur-2xl border border-white/20 p-8 rounded-[2rem] max-w-[400px] shadow-2xl">
+             <div className="absolute -top-4 -left-4 w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-black font-black italic -rotate-12 shadow-lg shadow-orange-500/30">
+               !
+             </div>
+             <h2 className="text-3xl font-black italic uppercase mb-1 tracking-tighter">{selectedPirate.name}</h2>
+             <div className="flex items-center gap-2 mb-4">
+                <span className="text-orange-400 font-mono text-sm uppercase tracking-[0.3em]">Bounty: {selectedPirate.bounty}</span>
+                <div className="h-[1px] flex-1 bg-white/10" />
+             </div>
+             <p className="text-white/70 text-base leading-relaxed mb-8 font-serif italic antialiased">
+               "Navigating the uncharted waters of the Grand Line. This pirate will return to the deck once the bounty is secured."
+             </p>
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                   <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50" />
+                   <span className="text-xs text-white/40 uppercase tracking-[0.2em] font-bold">In Deployment</span>
                 </div>
-              ))}
-            </div>
+                <button 
+                  onClick={() => setActivePosterId(null)}
+                  className="pointer-events-auto px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[10px] uppercase font-bold tracking-widest transition-all hover:scale-105 active:scale-95"
+                >
+                  Dismiss
+                </button>
+             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* HUD: TOP BAR */}
-      <header className="fixed top-0 left-0 w-full h-[52px] z-20 flex items-center justify-between px-4 sm:px-8 bg-gradient-to-b from-[#000510]/90 to-transparent">
-        <div className="flex items-center gap-3">
-          <img src="/logo192.png" className="w-4 h-4 sm:w-5 sm:h-5 opacity-80" alt="logo" />
-          <h1 className="text-white/60 font-mono text-[10px] sm:text-xs tracking-[0.2em] uppercase truncate max-w-[80px] sm:max-w-none">The Grand Line</h1>
+      {/* MINIMAL HUD TOP */}
+      <header className="fixed top-0 left-0 w-full h-[60px] z-30 flex items-center justify-between px-8 bg-gradient-to-b from-black/80 to-transparent">
+        <div className="flex items-center gap-4">
+          <img src="/logo192.png" className="w-6 h-6 opacity-90" alt="logo" />
+          <div className="h-4 w-[1px] bg-white/20" />
+          <h1 className="text-white/50 font-mono text-[10px] tracking-[0.3em] uppercase">Ship Deck Interface</h1>
         </div>
         
-        {/* DASHBOARD NAV */}
-        <nav className="flex items-center gap-0.5 sm:gap-1 bg-white/[0.03] border border-white/10 rounded-2xl p-0.5 sm:p-1 backdrop-blur-xl mx-2">
-          <button onClick={() => window.location.href = '/'} className="px-2 sm:px-4 py-1.5 text-white/40 hover:text-white/80 transition-all text-[10px] sm:text-xs flex items-center gap-1 sm:gap-2 group">
-            <span className="group-hover:rotate-12 transition-transform">✨</span> <span className="hidden xs:inline">Home</span>
-          </button>
-          <button className="px-2 sm:px-4 py-1.5 bg-white/10 text-white rounded-xl text-[10px] sm:text-xs flex items-center gap-1 sm:gap-2 border border-white/10">
-            <span className="animate-pulse">⚡</span> Agents
-          </button>
-          <button className="hidden md:flex px-4 py-1.5 text-white/40 hover:text-white/80 transition-all text-xs items-center gap-2">
-            🚀 Discover
-          </button>
-          <button className="hidden lg:flex px-4 py-1.5 text-white/40 hover:text-white/80 transition-all text-xs items-center gap-2">
-            ✨ Generate
-          </button>
-          <div className="hidden sm:block w-[1px] h-4 bg-white/10 mx-1" />
-          <button className="bg-blue-600 hover:bg-blue-500 text-white text-[9px] sm:text-[10px] font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg flex items-center gap-1 transition-all shadow-lg shadow-blue-500/20 active:scale-95">
-             <span className="hidden sm:inline">Generate</span> <span className="text-[8px]">➜</span>
+        <nav className="flex items-center gap-2">
+          <button onClick={() => window.location.href = '/'} className="px-6 py-2 text-white/40 hover:text-white transition-all text-xs font-bold uppercase tracking-widest group">
+            <span className="mr-2 group-hover:mr-4 transition-all opacity-0 group-hover:opacity-100">←</span> Home
           </button>
         </nav>
-        
-        <div className="hidden sm:flex items-center gap-4">
-           <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
-              <span className="text-[10px] text-white/40 font-mono uppercase tracking-wider">Node-7 Sky</span>
-           </div>
-        </div>
       </header>
 
-      {/* HUD: BOTTOM LOG */}
-      <footer className="fixed bottom-0 left-0 w-full h-[60px] z-20 flex items-center justify-center bg-gradient-to-t from-[#000510]/95 to-transparent pb-4 sm:pb-0">
-        <div className="relative w-full max-w-2xl px-4 overflow-hidden h-6">
-          <p className="text-[#a78bfa] font-mono text-[10px] sm:text-xs text-center animate-in slide-in-from-right-10 duration-700">
-            [{new Date().toLocaleTimeString()}] {LOG_MESSAGES[logIndex]}
-          </p>
-        </div>
+      {/* BOTTOM LOG FEED */}
+      <footer className="fixed bottom-0 left-0 w-full h-[60px] z-30 flex items-center justify-center bg-gradient-to-t from-black/80 to-transparent">
+          <div className="flex items-center gap-4 px-6 py-2 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-full antialiased">
+             <span className="text-orange-400 font-mono text-xs animate-pulse">●</span>
+             <p className="text-white/40 font-mono text-[10px] sm:text-xs uppercase tracking-widest">
+                {LOG_MESSAGES[logIndex]}
+             </p>
+          </div>
       </footer>
 
-      {/* EXIT BUTTON */}
-      <div className="fixed right-4 sm:right-8 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-4">
-        <button
-          onClick={() => window.location.href = '/'}
-          className="w-10 h-10 sm:w-12 sm:h-12 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex flex-col items-center justify-center text-white/60 hover:text-white transition-all backdrop-blur-md group"
-        >
-          <span className="text-[8px] sm:text-xs font-bold">X</span>
-          <span className="text-[6px] sm:text-[8px] uppercase opacity-60">Exit</span>
-        </button>
-      </div>
-
-      {/* GLOBAL OVERLAY (Grain/Vignette) */}
-      <div className="fixed inset-0 pointer-events-none z-30 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
-      <div className="fixed inset-0 pointer-events-none z-30 shadow-[inset_0_0_150px_rgba(0,0,0,0.8)]" />
+      {/* VIGNETTE & FILM GRAIN */}
+      <div className="fixed inset-0 pointer-events-none z-40 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+      <div className="fixed inset-0 pointer-events-none z-40 shadow-[inset_0_0_200px_rgba(0,0,0,0.9)]" />
     </div>
   );
 }

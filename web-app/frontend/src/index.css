@@ -523,5 +523,57 @@
     mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
     -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
   }
+
+  /* One Piece Cinematic Transitions */
+  .animate-bounce-snap {
+    animation: bounce-snap 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  }
+  .animate-slash-open {
+    animation: slash-open 0.6s cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+  .animate-flame-in {
+    animation: flame-in 0.7s ease-out both;
+  }
+  .animate-petal-bloom {
+    animation: petal-bloom 0.9s ease-in-out both;
+  }
+  .animate-pop-in {
+    animation: pop-in 0.5s cubic-bezier(0.26, 0.53, 0.74, 1.48) both;
+  }
+  .animate-poster-float {
+    animation: poster-float 4s ease-in-out infinite;
+  }
+}
+
+@keyframes bounce-snap {
+  0% { transform: scale(0.3) rotate(-15deg); opacity: 0; }
+  70% { transform: scale(1.1) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes slash-open {
+  0% { clip-path: polygon(0 45%, 100% 55%, 100% 55%, 0 45%); opacity: 0; transform: scale(1.2); }
+  60% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); opacity: 1; transform: scale(1); }
+  100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); opacity: 1; }
+}
+
+@keyframes flame-in {
+  0% { transform: translateY(50px) scale(0.9); filter: brightness(3) contrast(2) hue-rotate(-50deg); opacity: 0; }
+  100% { transform: translateY(0) scale(1); filter: brightness(1) contrast(1.1) hue-rotate(0); opacity: 1; }
+}
+
+@keyframes petal-bloom {
+  0% { transform: scale(0.8) rotate(-5deg); opacity: 0; filter: blur(10px); }
+  100% { transform: scale(1) rotate(0); opacity: 1; filter: blur(0); }
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes poster-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
