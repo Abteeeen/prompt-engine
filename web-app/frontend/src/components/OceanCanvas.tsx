@@ -75,7 +75,7 @@ export function OceanCanvas() {
 
   const getWaveY = (x: number, wave: WaveConfig, t: number, H: number) => {
     // Standardized wave physics (time * speed matches getWaveHeight utility)
-    const offset = t * wave.speed * 20; 
+    const offset = t * wave.speed * 3; 
     return H * wave.baseY
       + Math.sin(x * wave.f + offset) * wave.amp
       + Math.sin(x * wave.f * 1.7 + offset * 1.3) * wave.amp * 0.4
@@ -156,28 +156,16 @@ export function OceanCanvas() {
       }
     });
 
-    // STEP B: MOONLIGHT REFLECTION
+    // STEP B: MOONLIGHT HIGHLIGHTS (Subtle glints only)
     const shimmerX = W * 0.83;
-    const shimmerGrad = ctx.createLinearGradient(shimmerX, H * 0.56, shimmerX, H);
-    shimmerGrad.addColorStop(0, 'rgba(180,210,255,0.18)');
-    shimmerGrad.addColorStop(0.4, 'rgba(140,180,255,0.08)');
-    shimmerGrad.addColorStop(1, 'rgba(100,150,220,0.02)');
-
-    ctx.beginPath();
-    const shimmerW = 20 + Math.sin(t * 1.5) * 8;
-    ctx.ellipse(shimmerX, H * 0.75, shimmerW, H * 0.22, 0, 0, Math.PI * 2);
-    ctx.fillStyle = shimmerGrad;
-    ctx.fill();
-
-    // Small glinting highlights
-    for (let i = 0; i < 12; i++) {
-        const gx = (shimmerX - 40) + i * 8 + Math.sin(t * 2 + i) * 6;
-        const gy = H * 0.70 + Math.sin(t + i * 0.7) * 15;
-        const gop = 0.1 + Math.sin(t * 3 + i) * 0.08;
+    for (let i = 0; i < 8; i++) {
+        const gx = (shimmerX - 30) + i * 8 + Math.sin(t * 1.5 + i) * 6;
+        const gy = H * 0.72 + Math.sin(t * 0.8 + i * 0.7) * 12;
+        const gop = 0.08 + Math.sin(t * 2 + i) * 0.05;
         
         ctx.beginPath();
-        ctx.arc(gx, gy, 1.5, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200,230,255,${gop})`;
+        ctx.arc(gx, gy, 1.2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(180,210,255,${gop})`;
         ctx.fill();
     }
 

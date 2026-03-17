@@ -29,10 +29,7 @@ export default function AgentsPage() {
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-[#000308] font-sans selection:bg-violet-500/30">
-      {/* LAYER 0: 2D Ocean Background */}
-      <OceanCanvas />
-      
-      {/* LAYER 1: Three.js 3D Ship Scene */}
+      {/* NATIVE 3D CINEMATIC OCEAN & SHIP */}
       <ShipScene />
 
       {/* HUD: TOP BAR */}

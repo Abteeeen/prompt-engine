@@ -2,12 +2,12 @@
  * Shared wave physics logic to synchronize 2D visuals with 3D movement.
  */
 export const WAVES_CONFIG = [
-  { baseY: 0.56, amp: 6, f: 0.005, speed: 0.35 },
-  { baseY: 0.60, amp: 10, f: 0.007, speed: 0.50 },
-  { baseY: 0.64, amp: 15, f: 0.008, speed: 0.65 },
-  { baseY: 0.68, amp: 20, f: 0.009, speed: 0.82 },
-  { baseY: 0.72, amp: 26, f: 0.010, speed: 1.0 },
-  { baseY: 0.76, amp: 34, f: 0.011, speed: 1.22 },
+  { baseY: 0.56, amp: 6, f: 0.005, speed: 0.04 },
+  { baseY: 0.60, amp: 10, f: 0.007, speed: 0.06 },
+  { baseY: 0.64, amp: 15, f: 0.008, speed: 0.08 },
+  { baseY: 0.68, amp: 20, f: 0.009, speed: 0.10 },
+  { baseY: 0.72, amp: 26, f: 0.010, speed: 0.12 },
+  { baseY: 0.76, amp: 34, f: 0.011, speed: 0.15 },
 ];
 
 /**
