@@ -42,21 +42,23 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
 
     const hour = new Date().getHours();
     const isDay = hour >= 6 && hour < 18;
-    const skyColor = isDay ? 0x88ccff : 0x010208;
+    // Deep moonlit navy instead of pure black
+    const skyColor = isDay ? 0x88ccff : 0x01081a; 
     
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(skyColor);
-    scene.fog = new THREE.FogExp2(skyColor, 0.0015);
+    // Dark navy fog that doesn't wash out foreground colors
+    scene.fog = new THREE.FogExp2(0x01050f, 0.0012); 
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(40, 25, 40); // Better angle to see the sidebar
+    camera.position.set(40, 25, 40); 
     camera.lookAt(0, 5, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMapping = THREE.NoToneMapping; // Disable ACES Filmic to keep poster colors exactly as provided
     containerRef.current.appendChild(renderer.domElement);
 
     const waterGeometry = new THREE.PlaneGeometry(10000, 10000);
@@ -64,15 +66,18 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
         textureWidth: 512, textureHeight: 512,
         waterNormals: new THREE.TextureLoader().load('/textures/waternormals.jpg', (t) => t.wrapS = t.wrapT = THREE.RepeatWrapping),
         sunDirection: new THREE.Vector3(1, 1, 1).normalize(),
-        sunColor: 0xffffff, waterColor: 0x001e0f, distortionScale: 3.7
+        sunColor: 0x77ccff, // Cool moonlight
+        waterColor: 0x000a1a, // Deep navy water
+        distortionScale: 3.7
     });
     water.rotation.x = -Math.PI / 2;
     water.position.y = -5;
     scene.add(water);
     waterRef.current = water;
 
-    const ambient = new THREE.AmbientLight(0xffffff, isDay ? 1.0 : 0.4); scene.add(ambient);
-    const sun = new THREE.DirectionalLight(0xffffff, isDay ? 2.5 : 1.2); sun.position.set(50, 100, 50); scene.add(sun);
+    // Stronger ambient and moonlight to bring back colors
+    const ambient = new THREE.AmbientLight(0xffffff, isDay ? 1.0 : 0.6); scene.add(ambient);
+    const sun = new THREE.DirectionalLight(0xddeeff, isDay ? 2.5 : 1.5); sun.position.set(50, 100, 50); scene.add(sun);
 
     const gltfLoader = new GLTFLoader();
     gltfLoader.load('/models/sunny/glTF/scene.gltf', (gltf) => {
@@ -101,11 +106,13 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
 
     STRAW_HATS.forEach((pirate, idx) => {
       const geometry = new THREE.PlaneGeometry(3.5, 5);
+      // Use MeshBasicMaterial but ensure renderer toneMapping is off for exact color reproduction
       const material = new THREE.MeshBasicMaterial({ 
         map: textureLoader.load(pirate.image),
         transparent: true,
         side: THREE.DoubleSide,
-        opacity: 0.95
+        opacity: 0.98, // Slightly more solid for better color pop
+        fog: false // Prevent fog from washing colors away
       });
       const mesh = new THREE.Mesh(geometry, material);
       

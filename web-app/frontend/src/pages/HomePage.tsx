@@ -1158,17 +1158,25 @@ export function HomePage() {
 
 
 
-        {/* Headline - Bigger, bolder, centered */}
-
-        <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] mb-6 animate-slide-up">
-
-          <span className="text-white">Any idea.</span>
-
-          <br />
-
-          <span className="gradient-text">Perfect prompt.</span>
-
-        </h1>
+        <div className="relative inline-block perspective-[1000px]">
+          <h1 
+            className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] mb-6 animate-slide-up interactive-hover-text"
+            onMouseMove={(e) => {
+              const el = e.currentTarget;
+              const rect = el.getBoundingClientRect();
+              const x = (e.clientX - rect.left) / rect.width - 0.5;
+              const y = (e.clientY - rect.top) / rect.height - 0.5;
+              el.style.transform = `perspective(1000px) rotateY(${x * 15}deg) rotateX(${y * -15}deg) scale(1.02)`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'perspective(1000px) rotateY(0deg) rotateX(0deg) scale(1)';
+            }}
+          >
+            <span className="text-white">Any idea.</span>
+            <br />
+            <span className="gradient-text">Perfect prompt.</span>
+          </h1>
+        </div>
 
         
 
@@ -1201,12 +1209,63 @@ export function HomePage() {
 
 
       {/* Templates */}
-
       <TemplatesPreview templates={templates} />
 
+      {/* Contact Section - Restored Premium Version */}
+      <section className="max-w-4xl mx-auto px-6 pb-32">
+        <div className="glass p-8 sm:p-12 relative overflow-hidden group">
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl group-hover:bg-purple-600/20 transition-all duration-700" />
+          
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
+            <div className="text-center md:text-left">
+              <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-3">Get in touch</p>
+              <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">Let&apos;s build the future <br /> of AI together</h2>
+              <p className="text-sm text-gray-500 max-w-sm mb-8">
+                Have questions about prompt engineering? Need help with our platform? 
+                Our team (the crew) is here to help you navigate.
+              </p>
+              
+              <div className="flex flex-wrap justify-center md:justify-start gap-4">
+                <a 
+                  href="mailto:abhiramanil@gmail.com" 
+                  className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs font-bold transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                >
+                  <span className="text-purple-400">✉</span> abhiramanil@gmail.com
+                </a>
+                <a 
+                  href="tel:+918547562600" 
+                  className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs font-bold transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                >
+                  <span className="text-purple-400">📞</span> +91 8547 562 600
+                </a>
+              </div>
+            </div>
+
+            <div className="w-full md:w-auto flex flex-col gap-4">
+              <div className="glass p-6 rounded-2xl flex-1 border-white/5 bg-white/[0.02]">
+                <h4 className="text-xs font-bold text-white mb-1 uppercase tracking-wider">Office Hours</h4>
+                <p className="text-[11px] text-gray-500 italic">"The crew never sleeps, but we reply mostly between <br /> 9:00 AM — 6:00 PM IST."</p>
+              </div>
+              <div className="flex gap-4">
+                <div className="glass p-4 rounded-xl flex-1 text-center border-white/5 group-hover:border-purple-500/20 transition-colors">
+                  <div className="text-lg mb-1">🐦</div>
+                  <p className="text-[10px] font-bold text-white/60">Twitter</p>
+                </div>
+                <div className="glass p-4 rounded-xl flex-1 text-center border-white/5 group-hover:border-purple-500/20 transition-colors">
+                  <div className="text-lg mb-1">🐙</div>
+                  <p className="text-[10px] font-bold text-white/60">GitHub</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="mt-16 text-center">
+          <p className="text-[10px] text-gray-600 uppercase tracking-[0.4em] font-medium">© 2026 Prompt Engineering Science. Built by the Crew.</p>
+        </div>
+      </section>
     </div>
-
   )
-
 }
+
 
