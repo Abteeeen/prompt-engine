@@ -130,15 +130,8 @@ export default function ShipScene() {
     controlsRef.current = controls;
 
     // 5. MODEL LOADING
-    // 5. MODEL LOADING
     const gltfLoader = new GLTFLoader();
     
-    // Luffy specific refs for animation/interaction
-    const luffyGroup = new THREE.Group();
-    const luffyArms: THREE.Object3D[] = [];
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
     gltfLoader.load(
       '/models/sunny/glTF/scene.gltf',
       (gltf) => {
@@ -187,77 +180,10 @@ export default function ShipScene() {
         object.userData.baseY = baseY; 
         scene.add(object);
         shipRef.current = object;
-
-        // LOAD LUFFY AFTER SHIP IS READY
-        console.log('Ship loaded, starting Luffy load...');
-        gltfLoader.load(
-          '/characters/luffy/scene.gltf',
-          (luffyGltf) => {
-            console.log('Luffy loaded successfully');
-            const luffy = luffyGltf.scene;
-            
-            // 1. CALCULATE AUTOMATIC SCALE (Target Height: 3 units)
-            const box = new THREE.Box3().setFromObject(luffy);
-            const size = box.getSize(new THREE.Vector3());
-            const center = box.getCenter(new THREE.Vector3());
-            const originalHeight = size.y;
-            const scaleFactor = 3 / originalHeight;
-            
-            console.log('--- Luffy Model Metrics ---');
-            console.log('Original Size:', size);
-            console.log('Calculated Scale Factor (for 3u height):', scaleFactor);
-            
-            luffy.scale.setScalar(scaleFactor);
-            
-            // 2. CENTER PIVOT (so (0,0,0) is his feet/center)
-            luffy.position.sub(center); // Offset by center
-            luffy.position.y += size.y / 2; // Move up so pivot is at feet
-            
-            luffy.rotation.y = Math.PI; 
-            
-            luffyArms.length = 0; // Clear previous refs
-            luffy.traverse((node) => {
-              if ((node as THREE.Mesh).isMesh) {
-                node.castShadow = true;
-                node.receiveShadow = true;
-                if (node.name.toLowerCase().includes('object_13') || node.name.toLowerCase().includes('object_14')) {
-                   luffyArms.push(node);
-                }
-              }
-            });
-            
-            luffyGroup.add(luffy);
-            object.add(luffyGroup); 
-            
-            // Initial position on ship deck
-            luffyGroup.position.set(0, 11, -15);
-
-            const luffyLight = new THREE.PointLight(0xffcc88, isDay ? 0.2 : 1.2, 10);
-            luffyLight.position.set(0, 2, 0); 
-            luffyGroup.add(luffyLight);
-          },
-          undefined,
-          (error) => console.error('Luffy Load Error:', error)
-        );
       },
       undefined,
       (error) => console.error('glTF Load Error:', error)
     );
-
-    // Interaction handler
-    const handleClick = (event: MouseEvent) => {
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-      raycaster.setFromCamera(mouse, camera);
-      
-      // Check recursively against the entire group
-      const intersects = raycaster.intersectObject(luffyGroup, true);
-      if (intersects.length > 0) {
-        window.dispatchEvent(new CustomEvent('luffy-clicked'));
-      }
-    };
-    window.addEventListener('click', handleClick);
-
     // 6. SPRAY PARTICLES (Native 3D)
     const sprayCount = 1000;
     const sprayGeometry = new THREE.BufferGeometry();
@@ -319,17 +245,6 @@ export default function ShipScene() {
         shipRef.current.position.y = baseY + bobDisplacement;
         shipRef.current.rotation.z = (rawWaveY * 0.0012) + Math.sin(t * 0.5) * 0.01;
         shipRef.current.rotation.x = Math.cos(t * 0.4) * 0.015;
-
-        // LUFFY ANIMATION
-        if (luffyGroup) {
-            // Slight sway/bob relative to his standing position (Y: 14)
-            luffyGroup.position.y = 14 + Math.sin(t * 2) * 0.05;
-            
-            // Arm swing
-            luffyArms.forEach((arm, idx) => {
-              arm.rotation.x = Math.sin(t * 3 + (idx * Math.PI)) * 0.2;
-            });
-        }
       }
 
       renderer.render(scene, camera);
@@ -345,7 +260,6 @@ export default function ShipScene() {
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('click', handleClick);
       containerRef.current?.removeChild(renderer.domElement);
       renderer.dispose();
       controls.dispose();

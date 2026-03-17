@@ -15,85 +15,64 @@ const LOG_MESSAGES = [
   "The wind of creativity is blowing strongly",
 ];
 
+import { WantedPoster } from '../components/WantedPoster';
+
+const STRAW_HATS = [
+  { name: "Monkey D. Luffy", bounty: "3,000,000,000" },
+  { name: "Roronoa Zoro", bounty: "1,111,000,000" },
+  { name: "Jinbe", bounty: "1,100,000,000" },
+  { name: "Sanji", bounty: "1,032,000,000" },
+  { name: "Nico Robin", bounty: "930,000,000" },
+  { name: "Usopp", bounty: "500,000,000" },
+  { name: "Franky", bounty: "394,000,000" },
+  { name: "Brook", bounty: "383,000,000" },
+  { name: "Nami", bounty: "366,000,000" },
+  { name: "Tony Tony Chopper", bounty: "1,000" },
+];
+
 export default function AgentsPage() {
   const [logIndex, setLogIndex] = useState(0);
-  const [showPopup, setShowPopup] = useState(false);
-
-  console.log('AgentsPage state - showPopup:', showPopup);
 
   useEffect(() => {
-    const handleLuffyClick = () => {
-      console.log('Luffy click event received in AgentsPage');
-      setShowPopup(true);
-    };
-    window.addEventListener('luffy-clicked', handleLuffyClick);
-    
     const interval = setInterval(() => {
       setLogIndex((prev) => (prev + 1) % LOG_MESSAGES.length);
     }, 4000);
     
-    return () => {
-      window.removeEventListener('luffy-clicked', handleLuffyClick);
-      clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#000308] font-sans selection:bg-violet-500/30">
+    <div className="relative w-full h-screen overflow-hidden bg-[#000308] font-sans selection:bg-orange-500/30">
       {/* NATIVE 3D CINEMATIC OCEAN & SHIP */}
       <ShipScene />
 
-      {/* CHARACTER POPUP */}
-      {showPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all duration-300">
-          <div className="relative w-full max-w-md bg-[#000814]/95 border border-white/10 rounded-3xl p-8 backdrop-blur-2xl shadow-2xl shadow-blue-500/20 transition-all duration-500 transform scale-100 opacity-100">
-            <button 
-              onClick={() => setShowPopup(false)}
-              className="absolute top-6 right-6 text-white/40 hover:text-white transition-colors p-2"
-            >
-              <span className="text-xl leading-none">✕</span>
-            </button>
-            
-            <div className="flex flex-col items-center text-center">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-orange-500 to-red-500 p-1 mb-6 shadow-lg shadow-orange-500/20">
-                <div className="w-full h-full rounded-full bg-[#000814] flex items-center justify-center text-4xl">
-                  👒
-                </div>
+      {/* "ON A MISSION" OVERLAY */}
+      <div className="fixed inset-0 z-10 flex flex-col justify-end pointer-events-none">
+        <div className="w-full bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-32 pb-24 px-6 pointer-events-auto">
+          <div className="max-w-7xl mx-auto">
+            {/* Header Messaging */}
+            <div className="mb-8 text-center sm:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 mb-3">
+                 <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
+                 <span className="text-[10px] text-orange-400 font-bold uppercase tracking-widest">In Development</span>
               </div>
-              
-              <h2 className="text-2xl font-bold text-white mb-1 tracking-tight">Monkey D. Luffy</h2>
-              <p className="text-orange-400 font-mono text-xs uppercase tracking-[0.3em] mb-6">The Idea Agent</p>
-              
-              <div className="w-full space-y-4 text-left">
-                <div className="bg-white/5 border border-white/5 rounded-2xl p-4">
-                  <h3 className="text-white/40 text-[10px] uppercase tracking-wider mb-2">Primary Objective</h3>
-                  <p className="text-white/80 text-sm leading-relaxed">
-                    Transforming raw concepts into legendary prompt architectures. Exploring the Sea of Innovation to find the One Piece of perfect output.
-                  </p>
+              <h2 className="text-3xl sm:text-5xl font-black text-white mb-2 tracking-tighter uppercase italic">Crew on a Mission</h2>
+              <p className="text-white/40 text-sm max-w-lg mb-8 leading-relaxed">
+                The prompt engineering agents are currently onboarding or out on a high-stakes mission in the Grand Line. They will be joining the ship soon.
+              </p>
+            </div>
+
+            {/* Wanted Posters Row */}
+            <div className="flex gap-4 overflow-x-auto pb-8 no-scrollbar -mx-6 px-6 mask-fade-edges">
+              {STRAW_HATS.map((pirate) => (
+                <div key={pirate.name} className="w-[140px] sm:w-[180px] shrink-0">
+                  <WantedPoster name={pirate.name} bounty={pirate.bounty} />
                 </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white/5 border border-white/5 rounded-2xl p-4">
-                    <h3 className="text-white/40 text-[10px] uppercase tracking-wider mb-1">Status</h3>
-                    <p className="text-green-400 text-sm font-semibold">Ready to Sail</p>
-                  </div>
-                  <div className="bg-white/5 border border-white/5 rounded-2xl p-4">
-                    <h3 className="text-white/40 text-[10px] uppercase tracking-wider mb-1">Morale</h3>
-                    <p className="text-orange-400 text-sm font-semibold">Meat Obsessed</p>
-                  </div>
-                </div>
-              </div>
-              
-              <button 
-                onClick={() => setShowPopup(false)}
-                className="mt-8 w-full py-4 bg-white text-black font-bold rounded-2xl hover:bg-white/90 transition-all active:scale-[0.98]"
-              >
-                Set Sail
-              </button>
+              ))}
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* HUD: TOP BAR */}
       <header className="fixed top-0 left-0 w-full h-[52px] z-20 flex items-center justify-between px-4 sm:px-8 bg-gradient-to-b from-[#000510]/90 to-transparent">
