@@ -136,57 +136,34 @@ export default function ShipScene() {
       (gltf) => {
         const object = gltf.scene;
         
-        // BALANCED SELECTIVE HIDE STRATEGY
-        const shipKeywords = [
-          'hull', 'mast', 'sail', 'deck', 'wood', 'door', 'window', 'rope', 
-          'cannon', 'figure', 'head', 'lamp', 'lantern', 'grass', 'railing', 
-          'stairs', 'box', 'barrel', 'anchor', 'chain', 'lookout', 'cabin',
-          'sunny', 'ship', 'boat', 'flag', 'steering', 'wheel', 'bench',
-          'material.018', 'material.019', 'material.020' // RE-ENABLE PARTICLES/FOAM
-        ];
-
         object.traverse((child: THREE.Object3D) => {
           if (!(child as THREE.Mesh).isMesh) return;
           const mesh = child as THREE.Mesh;
-          const name = mesh.name.toLowerCase();
+          const name = mesh.name;
           const mat = mesh.material as THREE.Material;
-          const materialName = mat && mat.name ? mat.name.toLowerCase() : '';
-          const bbox = new THREE.Box3().setFromObject(mesh);
-          const size = bbox.getSize(new THREE.Vector3());
+          const materialName = mat && mat.name ? mat.name : '';
           
-          const envKeywords = [
-             'water', 'ocean', 'sea', 'plane', 'liquid', 'wave', 'river', 
-             'ground', 'stand', 'floor', 'base', 'environment', 'island', 
-             'mountain', 'rock', 'sky', 'cloud', 'background', 'nature',
-             'material.015', 'material.017', 'material_7', 'cube013', 'cube015'
-          ];
-          const isKnownEnv = envKeywords.some(key => name.includes(key) || materialName.includes(key));
-          const isFacetedWater = (size.x > 30 && size.z > 30 && size.y < 5);
-
-          const isShipPart = shipKeywords.some(key => name.includes(key) || materialName.includes(key));
-          
-          if (isKnownEnv || isFacetedWater) {
+          // SURGICAL REMOVAL OF INBUILT WATER ONLY
+          // User identified: name="Cube013_Material015_0", material="Material.015"
+          if (name.includes('Cube013') || materialName.includes('Material.015')) {
             mesh.visible = false;
             mesh.castShadow = false;
             mesh.receiveShadow = false;
-          } else {
-            if (isShipPart || (size.x < 30 && size.y < 30 && size.z < 30)) {
-               mesh.visible = true;
-               mesh.castShadow = true;
-               mesh.receiveShadow = true;
-               
-               // ANIME SPRAY/FOAM Logic
-               if (materialName.includes('018')) {
-                 mesh.visible = true;
-                 const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-                 materials.forEach(m => {
-                   m.transparent = true;
-                   m.opacity = 0.8;
-                 });
-               }
-            } else {
-               mesh.visible = false;
-            }
+            return;
+          }
+
+          // ALL OTHER PARTS: Ensure they are visible and cast shadows
+          mesh.visible = true;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+
+          // SPRAY/FOAM Logic (Keeping the nice transparency for these specific materials)
+          if (materialName.includes('018') || materialName.includes('019')) {
+             const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+             materials.forEach(m => {
+               m.transparent = true;
+               m.opacity = 0.8;
+             });
           }
         });
 
