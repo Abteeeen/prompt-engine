@@ -68,7 +68,7 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
         waterNormals: new THREE.TextureLoader().load('/textures/waternormals.jpg', (t) => t.wrapS = t.wrapT = THREE.RepeatWrapping),
         sunDirection: new THREE.Vector3(1, 1, 1).normalize(),
         sunColor: 0x77ccff, // Cool moonlight
-        waterColor: 0x000a1a, // Deep navy water
+        waterColor: 0x001e4d, // Brighter blue tinted water
         distortionScale: 3.7
     });
     water.rotation.x = -Math.PI / 2;
@@ -145,37 +145,32 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     controls.maxPolarAngle = Math.PI * 0.48; // Prevent looking below the ship/water level
     controls.minPolarAngle = Math.PI / 6; // Prevent looking straight down from above
     controls.minDistance = 25; // Professional zoom limit - prevent clipping
-    controls.maxDistance = 250; // Increased to allow viewing the beautiful new bay while still having a limit
+    controls.maxDistance = 500; // Increased to allow more exploration
     controlsRef.current = controls;
 
-    // --- LOADING PROVIDED 3D ISLAND MODEL (DISTANT BAY STYLE) ---
-    gltfLoader.load('/models/island/scene.gltf', (gltf) => {
-      const setupIsland = (x: number, z: number, scale: number, rotation: number) => {
-        const island = gltf.scene.clone();
-        island.position.set(x, -15, z);
-        island.scale.setScalar(scale);
-        island.rotation.y = rotation;
-        
-        island.traverse((child: any) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-            if (child.material) {
-              child.material.roughness = 1.0;
-              child.material.metalness = 0.0;
-            }
-          }
-        });
-        scene.add(island);
-        return island;
-      };
-
-      // Left island mass - far in the distance
-      setupIsland(-350, -650, 18, Math.PI * 0.4);
+    // --- LOADING NEW ENVO.GLB ISLAND MODEL ---
+    gltfLoader.load('/models/island/envo.glb', (gltf) => {
+      const island = gltf.scene;
       
-      // Right island mass - slightly different scale/rotation for variety
-      setupIsland(400, -700, 14, Math.PI * 1.6);
+      // Position the island underneath and around the scene
+      island.position.set(0, -18, 0);
+      island.scale.setScalar(450.0); // Large scale for "playable level" feel
+      island.rotation.y = 0;
+      
+      island.traverse((child: any) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+          // Enhancing materials for the island
+          if (child.material) {
+            child.material.roughness = 0.8;
+            child.material.metalness = 0.1;
+          }
+        }
+      });
+      scene.add(island);
     });
+
 
     const raycaster = new THREE.Raycaster();
     const onMouseClick = (event: MouseEvent) => {
