@@ -31,6 +31,7 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
   const postersRef = useRef<Map<string, THREE.Mesh>>(new Map());
   const mouseRef = useRef(new THREE.Vector2());
   const activePosterRef = useRef<string | null>(null);
+  const cavesRef = useRef<{ stones: { mat: THREE.MeshStandardMaterial, phase: number }[] }>({ stones: [] });
   
   // Sync ref for click handler
   useEffect(() => {
@@ -148,7 +149,6 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     controlsRef.current = controls;
 
     // --- PROCEDURAL CINEMATIC 3D CAVES ---
-    const cavesRef = useRef<{ stones: { mat: THREE.MeshStandardMaterial, phase: number }[] }>({ stones: [] });
     // Local variable inside useEffect to accumulate stone data before assigning to ref
     const animatedStones: { mat: THREE.MeshStandardMaterial, phase: number }[] = [];
 
