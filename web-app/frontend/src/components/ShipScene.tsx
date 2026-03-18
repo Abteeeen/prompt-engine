@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Water } from 'three/examples/jsm/objects/Water.js';
+import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { getWaveHeight } from '../utils/wavePhysics';
 import gsap from 'gsap';
 
@@ -47,11 +48,28 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     const skyColor = isDay ? 0x88ccff : 0x01081a; 
     
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(skyColor);
+    
+    // --- REALISTIC SKY SYSTEM ---
+    const sky = new Sky();
+    sky.scale.setScalar(10000);
+    scene.add(sky);
+
+    const skyUniforms = sky.material.uniforms;
+    skyUniforms['turbidity'].value = isDay ? 0.6 : 10;
+    skyUniforms['rayleigh'].value = isDay ? 2 : 0.1;
+    skyUniforms['mieCoefficient'].value = 0.005;
+    skyUniforms['mieDirectionalG'].value = 0.8;
+
+    const sunVec = new THREE.Vector3();
+    const phi = THREE.MathUtils.degToRad(isDay ? 88 : 178); // Sun elevation
+    const theta = THREE.MathUtils.degToRad(180);
+    sunVec.setFromSphericalCoords(1, phi, theta);
+    skyUniforms['sunPosition'].value.copy(sunVec);
+
     // Dark navy fog matching the water color so the distance fades naturally
     scene.fog = new THREE.FogExp2(0x001e4d, 0.0015); 
 
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
     // Position camera to see the ship's deck and the island clearly in the background
     camera.position.set(20, 30, 60); 
     camera.lookAt(0, 5, -20);
@@ -60,7 +78,8 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
-    renderer.toneMapping = THREE.NoToneMapping; // Disable ACES Filmic to keep poster colors exactly as provided
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; // Using ACES for better sky/sun highlights
+    renderer.toneMappingExposure = isDay ? 0.8 : 0.4;
     containerRef.current.appendChild(renderer.domElement);
 
     const waterGeometry = new THREE.PlaneGeometry(10000, 10000);
@@ -146,6 +165,56 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
       postersRef.current.set(pirate.id, mesh);
       posterGroup.add(mesh);
     });
+
+    // --- REALISTIC 3D CLOUD SYSTEM ---
+    const cloudTexture = textureLoader.load('/textures/cloud.png');
+    const cloudGroup = new THREE.Group();
+    scene.add(cloudGroup);
+    
+    const numClouds = 25;
+    for (let i = 0; i < numClouds; i++) {
+        const cloudMaterial = new THREE.MeshStandardMaterial({
+            map: cloudTexture,
+            transparent: true,
+            opacity: isDay ? 0.6 : 0.3,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+            color: isDay ? 0xffffff : 0x556688,
+            blending: THREE.AdditiveBlending, // Makes black background transparent
+            emissive: isDay ? 0xffffff : 0x000000,
+            emissiveIntensity: isDay ? 0.2 : 0
+        });
+
+        const cluster = new THREE.Group();
+        const numPuffs = 3 + Math.floor(Math.random() * 3);
+        for (let j = 0; j < numPuffs; j++) {
+            const cloudGeo = new THREE.PlaneGeometry(
+                180 + Math.random() * 120, 
+                100 + Math.random() * 60
+            );
+            const puff = new THREE.Mesh(cloudGeo, cloudMaterial);
+            // Random offset within the cluster
+            puff.position.set(
+              (Math.random() - 0.5) * 60,
+              (Math.random() - 0.5) * 30,
+              (Math.random() - 0.5) * 60
+            );
+            puff.rotation.z = Math.random() * Math.PI;
+            cluster.add(puff);
+        }
+
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 600 + Math.random() * 1200;
+        const altitude = 250 + Math.random() * 200;
+        cluster.position.set(
+            Math.cos(angle) * dist,
+            altitude,
+            Math.sin(angle) * dist
+        );
+        
+        cluster.lookAt(0, altitude, 0); // Face the center roughly
+        cloudGroup.add(cluster);
+    }
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -282,6 +351,13 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
           mesh.rotation.z = Math.sin(t * 0.6 + offset) * 0.03;
         }
       });
+
+      if (cloudGroup) {
+        cloudGroup.children.forEach((cluster, idx) => {
+          cluster.position.x += Math.sin(t * 0.05 + idx) * 0.02;
+          cluster.position.z += Math.cos(t * 0.05 + idx) * 0.02;
+        });
+      }
 
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
