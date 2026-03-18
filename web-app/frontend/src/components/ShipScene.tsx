@@ -167,10 +167,10 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
       (gltf) => {
         const island = gltf.scene;
         
-        // Position the island in the background to look massive
-        island.position.set(100, -25, -200);
-        island.scale.setScalar(800.0); // Massively scaled
-        island.rotation.y = -Math.PI / 8;
+        // Position the island far in the distance to look like a silhouette on the horizon
+        island.position.set(250, -45, -950);
+        island.scale.setScalar(120.0); // Scaled down to fit the distince vista look
+        island.rotation.y = Math.PI / 4;
         
         const meshesToOutline: THREE.Mesh[] = [];
 
