@@ -148,24 +148,66 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     controls.maxDistance = 500; // Increased to allow more exploration
     controlsRef.current = controls;
 
+    // --- GENERATE CEL-SHADING GRADIENT MAP ---
+    const format = THREE.RGBAFormat;
+    const colors = new Uint8Array([
+      60, 60, 60, 255,     // Shadow
+      140, 140, 140, 255,  // Midtone
+      255, 255, 255, 255   // Highlight
+    ]);
+    const threeTone = new THREE.DataTexture(colors, 3, 1, format);
+    threeTone.minFilter = THREE.NearestFilter;
+    threeTone.magFilter = THREE.NearestFilter;
+    threeTone.needsUpdate = true;
+
     // --- LOADING NEW ENVO.GLB ISLAND MODEL ---
     gltfLoader.load('/models/island/envo.glb', (gltf) => {
       const island = gltf.scene;
       
-      // Position the island underneath and around the scene
-      island.position.set(0, -18, 0);
-      island.scale.setScalar(450.0); // Large scale for "playable level" feel
-      island.rotation.y = 0;
+      // Position the island in the background to look massive
+      island.position.set(100, -25, -200);
+      island.scale.setScalar(800.0); // Massively scaled
+      island.rotation.y = -Math.PI / 8;
       
       island.traverse((child: any) => {
         if (child.isMesh) {
           child.castShadow = true;
           child.receiveShadow = true;
-          // Enhancing materials for the island
-          if (child.material) {
-            child.material.roughness = 0.8;
-            child.material.metalness = 0.1;
+          
+          // 1. Smooth shading for low poly
+          if (child.geometry) {
+             child.geometry.computeVertexNormals();
           }
+
+          // 2. Toon Material with specific color overrides
+          const originalMat = child.material;
+          const name = (child.name || '').toLowerCase();
+          const matName = (originalMat.name || '').toLowerCase();
+          let newColor = originalMat.color ? originalMat.color.clone() : new THREE.Color(0xffffff);
+          
+          if (name.includes('skull') || matName.includes('skull') || name.includes('bone') || matName.includes('bone')) {
+              newColor.setHex(0xEBE5CE); // Off-white/Bone
+          } else if (name.includes('tree') || matName.includes('leaf') || name.includes('grass') || matName.includes('grass') || name.includes('greenery')) {
+              newColor.setHex(0x2d7a2d); // Vibrant forest green
+          } else if (name.includes('rock') || matName.includes('rock') || name.includes('cliff') || name.includes('base') || matName.includes('stone')) {
+              newColor.setHex(0xd1953f); // Warm yellow-orange base
+          }
+
+          child.material = new THREE.MeshToonMaterial({
+             color: newColor,
+             map: originalMat.map || null,
+             gradientMap: threeTone,
+          });
+
+          // 3. Thick Black Anime Outline (Inverted Hull)
+          const outlineMat = new THREE.MeshBasicMaterial({ 
+             color: 0x000000, 
+             side: THREE.BackSide 
+          });
+          const outlineMesh = new THREE.Mesh(child.geometry, outlineMat);
+          // Scale out slightly based on the size of the mesh
+          outlineMesh.scale.multiplyScalar(1.02); 
+          child.add(outlineMesh);
         }
       });
       scene.add(island);
