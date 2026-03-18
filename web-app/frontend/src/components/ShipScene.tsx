@@ -143,28 +143,36 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     controls.maxPolarAngle = Math.PI * 0.48; // Prevent looking below the ship/water level
     controls.minPolarAngle = Math.PI / 6; // Prevent looking straight down from above
     controls.minDistance = 25; // Professional zoom limit - prevent clipping
-    controls.maxDistance = 120; // Stop unlimited zoom-out - keep island in view
+    controls.maxDistance = 250; // Increased to allow viewing the beautiful new bay while still having a limit
     controlsRef.current = controls;
 
-    // --- LOADING PROVIDED 3D ISLAND MODEL ---
+    // --- LOADING PROVIDED 3D ISLAND MODEL (DISTANT BAY STYLE) ---
     gltfLoader.load('/models/island/scene.gltf', (gltf) => {
-      const island = gltf.scene;
-      island.position.set(-200, -12, -100); // Positioned to the far side for an "arrival" feel
-      island.scale.setScalar(40); // Scales to fit the scene's large-scale ocean
-      island.rotation.y = Math.PI * 0.7; // Rotates to show the best "cliff face" to the camera
-      
-      island.traverse((child: any) => {
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-          // Enhancing textures for the low-light ocean environment
-          if (child.material) {
-            child.material.roughness = 0.9;
-            child.material.metalness = 0.1;
+      const setupIsland = (x: number, z: number, scale: number, rotation: number) => {
+        const island = gltf.scene.clone();
+        island.position.set(x, -15, z);
+        island.scale.setScalar(scale);
+        island.rotation.y = rotation;
+        
+        island.traverse((child: any) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            if (child.material) {
+              child.material.roughness = 1.0;
+              child.material.metalness = 0.0;
+            }
           }
-        }
-      });
-      scene.add(island);
+        });
+        scene.add(island);
+        return island;
+      };
+
+      // Left island mass - far in the distance
+      setupIsland(-350, -650, 18, Math.PI * 0.4);
+      
+      // Right island mass - slightly different scale/rotation for variety
+      setupIsland(400, -700, 14, Math.PI * 1.6);
     });
 
     const raycaster = new THREE.Raycaster();
