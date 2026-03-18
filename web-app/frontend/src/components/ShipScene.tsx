@@ -142,9 +142,30 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     controls.enablePan = false; // Disable panning to keep ship centered
     controls.maxPolarAngle = Math.PI * 0.48; // Prevent looking below the ship/water level
     controls.minPolarAngle = Math.PI / 6; // Prevent looking straight down from above
-    controls.minDistance = 20; // Prevent zooming too close into the ship
-    controls.maxDistance = 150; // Prevent zooming too far away
+    controls.minDistance = 25; // Professional zoom limit - prevent clipping
+    controls.maxDistance = 120; // Stop unlimited zoom-out - keep island in view
     controlsRef.current = controls;
+
+    // --- LOADING PROVIDED 3D ISLAND MODEL ---
+    gltfLoader.load('/models/island/scene.gltf', (gltf) => {
+      const island = gltf.scene;
+      island.position.set(-200, -12, -100); // Positioned to the far side for an "arrival" feel
+      island.scale.setScalar(40); // Scales to fit the scene's large-scale ocean
+      island.rotation.y = Math.PI * 0.7; // Rotates to show the best "cliff face" to the camera
+      
+      island.traverse((child: any) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+          // Enhancing textures for the low-light ocean environment
+          if (child.material) {
+            child.material.roughness = 0.9;
+            child.material.metalness = 0.1;
+          }
+        }
+      });
+      scene.add(island);
+    });
 
     const raycaster = new THREE.Raycaster();
     const onMouseClick = (event: MouseEvent) => {
