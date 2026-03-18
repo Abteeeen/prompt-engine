@@ -9,6 +9,12 @@ import { checkGenerationQuota } from '../services/QuotaService.js';
 
 const router = Router();
 
+// GET /api/prompts/quota — return current user/guest quota usage
+router.get('/quota', async (req, res) => {
+  const quota = await checkGenerationQuota(req);
+  res.json(quota);
+});
+
 // POST /api/prompts/generate — generate prompt from template + form data
 router.post('/generate', async (req, res) => {
   const { templateId, formData, options } = req.body;

@@ -9,7 +9,7 @@ const GUEST_DAILY_LIMIT = 15;
 export async function checkGenerationQuota(req) {
   // Logged-in users bypass the strict 15-try limit, or have their own higher limit.
   if (req.user) {
-    return { allowed: true, remaining: 'Unlimited', totalUsed: 0 };
+    return { allowed: true, remaining: 'Unlimited', totalUsed: 0, limit: '∞' };
   }
 
   // Identify guest uniquely, preferring IP but falling back to session ID.

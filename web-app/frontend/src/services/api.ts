@@ -71,6 +71,7 @@ export const api = {
       request<FormStructure>(`/forms/${encodeURIComponent(templateId)}?mode=${mode}`),
   },
   prompts: {
+    getQuota: () => request<{ allowed: boolean; remaining: number | string; totalUsed: number; limit: number }>('/prompts/quota'),
     generate: (templateId: string, formData: FormData, options?: Record<string, string>) =>
       request<GenerateResult>('/prompts/generate', {
         method: 'POST',

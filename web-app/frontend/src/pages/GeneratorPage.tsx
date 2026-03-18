@@ -60,6 +60,8 @@ export function GeneratorPage() {
   // Quota specific state
   const [quotaExceeded, setQuotaExceeded] = useState(false)
   const [remainingTries, setRemainingTries] = useState<number | string | null>(null)
+  const [usedTries, setUsedTries] = useState<number>(0)
+  const [limitTries, setLimitTries] = useState<number>(15)
 
   const filledCount = form ? form.fields.filter(f => formData[f.name]?.trim()).length : 0
   const requiredCount = form ? form.fields.filter(f => f.required).length : 0
@@ -68,6 +70,13 @@ export function GeneratorPage() {
   useEffect(() => {
     api.templates.list().then(setTemplates)
     api.analytics.track('page_view', undefined, { page: 'generator' })
+    
+    // Initial quota check
+    api.prompts.getQuota().then(q => {
+      setRemainingTries(q.remaining)
+      setUsedTries(q.totalUsed)
+      setLimitTries(q.limit)
+    })
   }, [])
 
   // Load form when template or mode changes
@@ -93,7 +102,10 @@ export function GeneratorPage() {
     try {
       const res = await api.prompts.generate(selected, formData) as any;
       setResult(res)
-      if (res.quota) setRemainingTries(res.quota.remaining)
+      if (res.quota) {
+        setRemainingTries(res.quota.remaining)
+        setUsedTries(res.quota.totalUsed)
+      }
       setOutputState({ selectedIndex: 0, editedText: res.variations[0].text })
       api.analytics.track('prompt_generated', selected, {
         qualityScore: res.qualityScore.overallScore,
@@ -122,6 +134,7 @@ export function GeneratorPage() {
         setQuotaExceeded(false)
         setError('')
         setRemainingTries('Unlimited')
+        setUsedTries(0)
         // Try generating again immediately
         await handleGenerate()
       }
@@ -130,6 +143,7 @@ export function GeneratorPage() {
       setError('Google Sign-In failed.')
     }
   }
+
 
   const levenshtein = (a: string, b: string) => {
     if (a === b) return 0
@@ -199,7 +213,17 @@ export function GeneratorPage() {
         {/* ── COLUMN 2: Form ── */}
         <div className="glass p-5 rounded-2xl">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">2. Fill the form</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">2. Fill the form</h2>
+              {remainingTries !== null && (
+                <div className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 flex items-center gap-1.5 overflow-hidden">
+                  <div className="w-1 h-1 rounded-full bg-purple-400 animate-pulse" />
+                  <span className="text-[10px] font-mono text-gray-400">
+                    {remainingTries === 'Unlimited' ? '∞' : `${usedTries}/${limitTries}`}
+                  </span>
+                </div>
+              )}
+            </div>
 
             {/* Mode selector */}
             <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -251,7 +275,6 @@ export function GeneratorPage() {
                 <div className="flex-1">
                   <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
                     <span>{filledCount} / {form.fields.length} filled</span>
-                    {remainingTries !== null && <span className="text-purple-400">{remainingTries} tries remaining</span>}
                   </div>
                   <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
                     <div
