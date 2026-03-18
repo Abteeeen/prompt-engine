@@ -78,12 +78,12 @@ export default function AgentsPage() {
         >
           <div className="relative w-full max-w-6xl h-full max-h-[85vh] flex flex-col md:flex-row gap-12 items-center justify-center pointer-events-auto">
             
-            {/* POSTER LAYER - Crystall Clear, No Backdrop Filter */}
-            <div className={`relative flex-1 h-full max-h-[75vh] min-h-[400px] aspect-[2/3] movie-letterbox overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-white/10 ${isExiting ? '' : 'animate-slam-in'}`}>
+            {/* POSTER LAYER - Crystall Clear, Full Aspect Ratio */}
+            <div className={`relative flex-1 h-full max-h-[75vh] min-h-[400px] aspect-[2/3] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-white/10 ${isExiting ? '' : 'animate-slam-in'}`}>
               <img 
                 src={selectedPirate.image} 
                 alt={selectedPirate.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-fill"
                 style={{ filter: 'contrast(1.1) brightness(1.05)', opacity: 1 }}
               />
               <div className="film-grain-overlay" />

@@ -139,6 +139,11 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
+    controls.enablePan = false; // Disable panning to keep ship centered
+    controls.maxPolarAngle = Math.PI * 0.48; // Prevent looking below the ship/water level
+    controls.minPolarAngle = Math.PI / 6; // Prevent looking straight down from above
+    controls.minDistance = 20; // Prevent zooming too close into the ship
+    controls.maxDistance = 150; // Prevent zooming too far away
     controlsRef.current = controls;
 
     const raycaster = new THREE.Raycaster();

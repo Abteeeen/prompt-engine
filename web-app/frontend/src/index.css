@@ -544,20 +544,7 @@
     animation: poster-float 4s ease-in-out infinite;
   }
 
-  /* Cinematic Title Card Utilities */
-  .movie-letterbox::before,
-  .movie-letterbox::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 8%;
-    background: black;
-    z-index: 10;
-  }
-  .movie-letterbox::before { top: 0; }
-  .movie-letterbox::after { bottom: 0; }
-
+  /* Cinematic Title Card Utilities - Removed letterbox bars per user request */
   .poster-vignette {
     background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.4) 100%);
     pointer-events: none;
@@ -621,10 +608,10 @@
 }
 
 @keyframes screen-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  50% { transform: translateX(4px); }
-  75% { transform: translateX(-2px); }
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-4px, -2px); } /* Left and Up */
+  50% { transform: translate(4px, -4px); }  /* Right and Up */
+  75% { transform: translate(-2px, -1px); } /* Left and Up */
 }
 
 @keyframes typewriter {
