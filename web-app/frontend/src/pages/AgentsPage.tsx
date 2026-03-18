@@ -76,10 +76,10 @@ export default function AgentsPage() {
           className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 bg-black/40 backdrop-blur-sm pointer-events-none ${isExiting ? 'animate-cut-to-black' : 'animate-in fade-in duration-500'}`}
           onClick={handleDismiss}
         >
-          <div className="relative w-full max-w-6xl h-full max-h-[85vh] flex flex-col md:flex-row gap-12 items-center justify-center pointer-events-auto">
+          <div className="relative w-full max-w-6xl flex flex-col md:flex-row gap-6 md:gap-12 items-center justify-start md:justify-center pointer-events-auto h-[90vh] md:h-auto md:max-h-[85vh] overflow-y-auto md:overflow-visible no-scrollbar pb-12 md:pb-0">
             
             {/* POSTER LAYER - Crystall Clear, Full Aspect Ratio */}
-            <div className={`relative flex-1 h-full max-h-[75vh] min-h-[400px] aspect-[2/3] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-white/10 ${isExiting ? '' : 'animate-slam-in'}`}>
+            <div className={`relative shrink-0 w-[200px] h-[300px] md:w-auto md:flex-1 md:h-full md:max-h-[75vh] md:min-h-[400px] aspect-[2/3] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] md:shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-white/10 ${isExiting ? '' : 'animate-slam-in'}`}>
               <img 
                 src={selectedPirate.image} 
                 alt={selectedPirate.name}
@@ -92,26 +92,26 @@ export default function AgentsPage() {
 
             {/* INFO LAYER - Slide up with fade */}
             <div 
-              className={`flex-1 flex flex-col justify-center max-w-xl animate-in slide-in-from-bottom-20 fade-in duration-1000 delay-300 ${isExiting ? 'opacity-0' : ''}`}
+              className={`flex-1 w-full flex flex-col justify-start md:justify-center max-w-xl animate-in slide-in-from-bottom-20 fade-in duration-1000 delay-300 px-4 md:px-0 ${isExiting ? 'opacity-0' : ''}`}
               onClick={(e) => e.stopPropagation()}
             >
-               <div className="mb-4">
-                 <h2 className="text-5xl sm:text-7xl font-black italic uppercase tracking-tighter text-white animate-typewriter inline-block">
+               <div className="mb-2 md:mb-4">
+                 <h2 className="text-4xl md:text-5xl lg:text-7xl font-black italic uppercase tracking-tighter text-white animate-typewriter inline-block">
                    {selectedPirate.name}
                  </h2>
                  <div className="h-2 w-full bg-orange-500 mt-2 animate-draw-line" />
                </div>
                
-               <div className="flex items-center gap-4 mb-8">
-                  <span className="text-orange-400 font-mono text-2xl uppercase tracking-[0.4em] font-bold">Bounty: {selectedPirate.bounty}</span>
+               <div className="flex items-center gap-4 mb-4 md:mb-8">
+                  <span className="text-orange-400 font-mono text-lg md:text-2xl uppercase tracking-[0.2em] md:tracking-[0.4em] font-bold">Bounty: {selectedPirate.bounty}</span>
                </div>
                
-               <div className="space-y-10">
-                 <p className="text-white/95 text-2xl leading-relaxed font-serif italic antialiased drop-shadow-2xl">
+               <div className="space-y-6 md:space-y-10">
+                 <p className="text-white/95 text-lg md:text-2xl leading-relaxed font-serif italic antialiased drop-shadow-2xl">
                    "Navigating the uncharted waters of the Grand Line. This pirate will return to the deck once the bounty is secured."
                  </p>
                  
-                 <div className="py-8 border-y border-white/10 text-white/70 text-lg leading-relaxed glass p-8 rounded-3xl">
+                 <div className="py-6 md:py-8 border-y border-white/10 text-white/70 text-sm md:text-lg leading-relaxed glass p-6 md:p-8 rounded-3xl">
                    <p className="mb-6">
                      <span className="text-orange-500 font-bold uppercase tracking-widest text-xs block mb-2">Mission Log:</span>
                      Current coordinates: Grand Line - Sector 7. Deployment specialized in complex prompt architectures and tactical SEO maneuvers.
@@ -123,14 +123,14 @@ export default function AgentsPage() {
                  </div>
                </div>
 
-               <div className="flex items-center justify-between mt-12">
+               <div className="flex flex-col sm:flex-row items-center justify-between mt-8 md:mt-12 gap-6 sm:gap-0">
                   <div className="flex items-center gap-4">
                      <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.6)]" />
-                     <span className="text-sm text-white/60 uppercase tracking-[0.25em] font-black">In Deployment</span>
+                     <span className="text-xs md:text-sm text-white/60 uppercase tracking-[0.25em] font-black">In Deployment</span>
                   </div>
                   <button 
                     onClick={handleDismiss}
-                    className="px-12 py-4 bg-white text-black hover:bg-orange-500 hover:text-white rounded-none font-black uppercase tracking-[0.3em] transition-all hover:scale-105 active:scale-95 shadow-2xl border-2 border-black"
+                    className="w-full sm:w-auto px-12 py-4 bg-white text-black hover:bg-orange-500 hover:text-white rounded-none font-black uppercase tracking-[0.3em] transition-all hover:scale-105 active:scale-95 shadow-2xl border-2 border-black"
                   >
                     Dismiss
                   </button>

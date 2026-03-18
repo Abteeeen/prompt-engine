@@ -118,8 +118,9 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
       
       // Step 1: Initial Placement (Proximal rail, spaced along Z)
       const isEven = idx % 2 === 0;
-      // Moved further out to X=22-24 to avoid ship bulk occlusion
-      const startX = isEven ? 22.0 : 25.0; 
+      const isMobile = window.innerWidth <= 768;
+      // Moved closer to ship rail on mobile so they fit in narrower FOV
+      const startX = isEven ? (isMobile ? 12.0 : 22.0) : (isMobile ? 14.0 : 25.0); 
       const startZ = -14 + idx * 5.2; 
       const startY = 10.0; 
       
@@ -366,10 +367,11 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
         const camDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
         const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
         
-        // Target: 8 units in front, 3.0 units to the LEFT
+        const isMobile = window.innerWidth <= 768;
+        // Target: 8 units in front, 3.0 units to the LEFT (centered on mobile, pushed out slightly more)
         const targetPos = camera.position.clone()
-          .add(camDir.multiplyScalar(8))
-          .add(camRight.multiplyScalar(-3.0));
+          .add(camDir.multiplyScalar(isMobile ? 12 : 8))
+          .add(camRight.multiplyScalar(isMobile ? 0 : -3.0));
         
         gsap.to(mesh.position, {
           x: targetPos.x, y: targetPos.y, z: targetPos.z,
