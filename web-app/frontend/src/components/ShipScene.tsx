@@ -48,12 +48,13 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(skyColor);
-    // Dark navy fog that doesn't wash out foreground colors
-    scene.fog = new THREE.FogExp2(0x01050f, 0.0012); 
+    // Dark navy fog matching the water color so the distance fades naturally
+    scene.fog = new THREE.FogExp2(0x001e4d, 0.0015); 
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(40, 25, 40); 
-    camera.lookAt(0, 5, 0);
+    // Position camera to see the ship's deck and the island clearly in the background
+    camera.position.set(20, 30, 60); 
+    camera.lookAt(0, 5, -20);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -77,8 +78,13 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     waterRef.current = water;
 
     // Stronger ambient and moonlight to bring back colors
-    const ambient = new THREE.AmbientLight(0xffffff, isDay ? 1.0 : 0.6); scene.add(ambient);
+    const ambient = new THREE.AmbientLight(0xffffff, isDay ? 1.5 : 0.8); scene.add(ambient);
     const sun = new THREE.DirectionalLight(0xddeeff, isDay ? 2.5 : 1.5); sun.position.set(50, 100, 50); scene.add(sun);
+
+    // Front-Left Directional Light to make the island and ship colors pop
+    const frontLeftLight = new THREE.DirectionalLight(0xfffaee, 2.0);
+    frontLeftLight.position.set(-100, 100, 100);
+    scene.add(frontLeftLight);
 
     const gltfLoader = new GLTFLoader();
     console.log('Starting ship load...');
@@ -167,9 +173,9 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
       (gltf) => {
         const island = gltf.scene;
         
-        // Position the island far in the distance to look like a silhouette on the horizon
-        island.position.set(250, -45, -950);
-        island.scale.setScalar(120.0); // Scaled down to fit the distince vista look
+        // Position the island closer, acting as a massive mountain in the background
+        island.position.set(100, -25, -350); 
+        island.scale.setScalar(180.0); // 1.5x of previous 120
         island.rotation.y = Math.PI / 4;
         
         const meshesToOutline: THREE.Mesh[] = [];
@@ -193,11 +199,11 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
             let newColor = (originalMat && originalMat.color) ? originalMat.color.clone() : new THREE.Color(0xffffff);
             
             if (name.includes('skull') || matName.includes('skull') || name.includes('bone') || matName.includes('bone')) {
-                newColor.setHex(0xEBE5CE); // Off-white/Bone
-            } else if (name.includes('tree') || matName.includes('leaf') || name.includes('grass') || name.includes('greenery')) {
-                newColor.setHex(0x2d7a2d); // Vibrant forest green
+                newColor.setHex(0xfdf6e3); // Off-white/Cream
+            } else if (name.includes('tree') || matName.includes('leaf') || name.includes('grass') || name.includes('mountain') || name.includes('greenery')) {
+                newColor.setHex(0x2d5a27); // Vibrant forest green
             } else if (name.includes('rock') || matName.includes('rock') || name.includes('cliff') || name.includes('base') || name.includes('stone')) {
-                newColor.setHex(0xd1953f); // Warm yellow-orange base
+                newColor.setHex(0xc2b280); // Sandy Brown rocks
             }
 
             child.material = new THREE.MeshToonMaterial({
