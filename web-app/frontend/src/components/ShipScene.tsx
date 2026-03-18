@@ -146,34 +146,144 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     controls.maxDistance = 250; // Increased to allow viewing the beautiful new bay while still having a limit
     controlsRef.current = controls;
 
-    // --- LOADING PROVIDED 3D ISLAND MODEL (DISTANT BAY STYLE) ---
-    gltfLoader.load('/models/island/scene.gltf', (gltf) => {
-      const setupIsland = (x: number, z: number, scale: number, rotation: number) => {
-        const island = gltf.scene.clone();
-        island.position.set(x, -15, z);
-        island.scale.setScalar(scale);
-        island.rotation.y = rotation;
-        
-        island.traverse((child: any) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-            if (child.material) {
-              child.material.roughness = 1.0;
-              child.material.metalness = 0.0;
-            }
-          }
-        });
-        scene.add(island);
-        return island;
-      };
+    // --- PROCEDURAL CINEMATIC 3D CAVES ---
+    const cavesRef = useRef<{ stones: { mat: THREE.MeshStandardMaterial, phase: number }[] }>({ stones: [] });
+    // Local variable inside useEffect to accumulate stone data before assigning to ref
+    const animatedStones: { mat: THREE.MeshStandardMaterial, phase: number }[] = [];
 
-      // Left island mass - far in the distance
-      setupIsland(-350, -650, 18, Math.PI * 0.4);
-      
-      // Right island mass - slightly different scale/rotation for variety
-      setupIsland(400, -700, 14, Math.PI * 1.6);
-    });
+    const createCave = (posX: number, posZ: number, scaleY: number, rotationY: number) => {
+      const caveGroup = new THREE.Group();
+      caveGroup.position.set(posX, 0, posZ);
+      caveGroup.rotation.y = rotationY;
+
+      // Dark wet rock material
+      const rockMat = new THREE.MeshStandardMaterial({
+        color: 0x111318,
+        roughness: 0.8,
+        metalness: 0.2, // Slight wet sheen
+        flatShading: true
+      });
+
+      // 1. Cave Arch Structure
+      // Left Pillar
+      const p1Geo = new THREE.CylinderGeometry(8, 12, 35, 7);
+      p1Geo.translate(0, 17.5, 0);
+      const p1 = new THREE.Mesh(p1Geo, rockMat);
+      p1.position.set(-15, -10, 0);
+      p1.rotation.z = -0.1;
+      p1.rotation.y = Math.random() * Math.PI;
+      caveGroup.add(p1);
+
+      // Right Pillar
+      const p2Geo = new THREE.CylinderGeometry(9, 14, 35, 8);
+      p2Geo.translate(0, 17.5, 0);
+      const p2 = new THREE.Mesh(p2Geo, rockMat);
+      p2.position.set(15, -10, 0);
+      p2.rotation.z = 0.15;
+      p2.rotation.y = Math.random() * Math.PI;
+      caveGroup.add(p2);
+
+      // Roof Arch
+      const roofGeo = new THREE.BoxGeometry(38, 15, 20);
+      roofGeo.translate(0, 7.5, 0);
+      // Rough displacement simulation via scaling and rotation
+      const roof = new THREE.Mesh(roofGeo, rockMat);
+      roof.position.set(0, 20, 0);
+      roof.rotation.x = Math.random() * 0.2 - 0.1;
+      roof.rotation.z = Math.random() * 0.1 - 0.05;
+      caveGroup.add(roof);
+
+      // Back depth (creates the tunnel)
+      const tunnelGeo = new THREE.BoxGeometry(42, 35, 30);
+      tunnelGeo.translate(0, 17.5, 0);
+      const tunnel = new THREE.Mesh(tunnelGeo, rockMat);
+      tunnel.position.set(0, -5, -20);
+      caveGroup.add(tunnel);
+
+      // 2. Glowing Blue Core Stones
+      const stoneGeo = new THREE.SphereGeometry(1, 16, 16);
+      for (let i = 0; i < 10; i++) {
+        const stoneMat = new THREE.MeshStandardMaterial({
+          color: 0x002288,
+          emissive: 0x0044ff,
+          emissiveIntensity: 2.5,
+          roughness: 0.1
+        });
+        const stone = new THREE.Mesh(stoneGeo, stoneMat);
+        
+        // Random placement along the inner walls and ceiling
+        const sx = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 8 + 8);
+        const sy = Math.random() * 20 + 5;
+        const sz = -(Math.random() * 25 + 5);
+        stone.position.set(sx, sy, sz);
+        stone.scale.setScalar(Math.random() * 0.8 + 0.4);
+        caveGroup.add(stone);
+
+        // Store for animation loop
+        animatedStones.push({ mat: stoneMat, phase: Math.random() * Math.PI * 2 });
+      }
+
+      // 3. PointLight spilling out
+      const caveLight = new THREE.PointLight(0x0033cc, 1.2, 80);
+      caveLight.position.set(0, 15, -5); // Inside the top of the arch
+      caveGroup.add(caveLight);
+
+      // 4. Stalactites
+      const stalGeo = new THREE.ConeGeometry(1.5, 8, 5);
+      stalGeo.translate(0, -4, 0);
+      for (let i = 0; i < 6; i++) {
+        const stal = new THREE.Mesh(stalGeo, rockMat);
+        const stx = (Math.random() - 0.5) * 20;
+        const stz = -(Math.random() * 20);
+        stal.position.set(stx, 27, stz); // Hanging from roof
+        stal.rotation.x = (Math.random() - 0.5) * 0.2;
+        stal.rotation.z = (Math.random() - 0.5) * 0.2;
+        stal.scale.set(Math.random() * 0.5 + 0.5, Math.random() * 1.5 + 0.5, Math.random() * 0.5 + 0.5);
+        caveGroup.add(stal);
+      }
+
+      // 5. Hanging Vines
+      for (let i = 0; i < 4; i++) {
+        const curvePointCount = 5;
+        const points = [];
+        let curX = 0; let curZ = 0;
+        for (let j = 0; j < curvePointCount; j++) {
+          points.push(new THREE.Vector3(curX, -j * 3, curZ));
+          curX += (Math.random() - 0.5) * 1.5;
+          curZ += (Math.random() - 0.5) * 1.5;
+        }
+        const vineCurve = new THREE.CatmullRomCurve3(points);
+        const vineGeo = new THREE.TubeGeometry(vineCurve, 20, 0.25, 5, false);
+        const vineMat = new THREE.MeshStandardMaterial({ color: 0x1c2b18, roughness: 0.9 });
+        const vine = new THREE.Mesh(vineGeo, vineMat);
+        
+        const vx = (Math.random() - 0.5) * 18;
+        const vz = -(Math.random() * 15 + 5);
+        vine.position.set(vx, 25, vz);
+        caveGroup.add(vine);
+      }
+
+      // Allow caves to cast/receive shadows globally
+      caveGroup.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+
+      // Apply specific vertical scaling and add to scene
+      caveGroup.scale.y = scaleY;
+      scene.add(caveGroup);
+    };
+
+    // Instantiate the two caves framing the ship
+    // Left Cave (Rotated slightly towards center)
+    createCave(-35, -10, 1.2, Math.PI * 0.15);
+    // Right Cave (Rotated slightly towards center)
+    createCave(35, -10, 1.1, -Math.PI * 0.15);
+    
+    // Bind animated stones to ref for the render loop
+    cavesRef.current.stones = animatedStones;
 
     const raycaster = new THREE.Raycaster();
     const onMouseClick = (event: MouseEvent) => {
@@ -197,6 +307,14 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
       const t = clock.getElapsedTime();
       if (controls) controls.update();
       if (waterRef.current) waterRef.current.material.uniforms['time'].value += 1.0 / 60.0;
+
+      // Cave core stones pulsing animation
+      if (cavesRef.current && cavesRef.current.stones.length > 0) {
+        cavesRef.current.stones.forEach(stone => {
+           // Oscillate between 1.5 and 3.0
+           stone.mat.emissiveIntensity = 2.25 + Math.sin(t * 2.0 + stone.phase) * 0.75;
+        });
+      }
 
       if (shipRef.current) {
         const baseY = shipRef.current.userData.baseY ?? -2;
