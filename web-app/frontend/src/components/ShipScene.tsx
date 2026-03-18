@@ -81,7 +81,9 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     const sun = new THREE.DirectionalLight(0xddeeff, isDay ? 2.5 : 1.5); sun.position.set(50, 100, 50); scene.add(sun);
 
     const gltfLoader = new GLTFLoader();
+    console.log('Starting ship load...');
     gltfLoader.load('/models/sunny/glTF/scene.gltf', (gltf) => {
+      console.log('Ship loaded successfully');
       const ship = gltf.scene;
       ship.traverse((child: any) => {
         if (child.name.includes('Cube013')) { child.visible = false; return; }
@@ -99,7 +101,7 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
       ship.userData.baseY = baseY;
       scene.add(ship);
       shipRef.current = ship;
-    });
+    }, undefined, (err) => console.error('Ship load error:', err));
 
     const textureLoader = new THREE.TextureLoader();
     const posterGroup = new THREE.Group();
@@ -161,57 +163,70 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     threeTone.needsUpdate = true;
 
     // --- LOADING NEW ENVO.GLB ISLAND MODEL ---
-    gltfLoader.load('/models/island/envo.glb', (gltf) => {
-      const island = gltf.scene;
-      
-      // Position the island in the background to look massive
-      island.position.set(100, -25, -200);
-      island.scale.setScalar(800.0); // Massively scaled
-      island.rotation.y = -Math.PI / 8;
-      
-      island.traverse((child: any) => {
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-          
-          // 1. Smooth shading for low poly
-          if (child.geometry) {
-             child.geometry.computeVertexNormals();
+    gltfLoader.load('/models/island/envo.glb', 
+      (gltf) => {
+        const island = gltf.scene;
+        
+        // Position the island in the background to look massive
+        island.position.set(100, -25, -200);
+        island.scale.setScalar(800.0); // Massively scaled
+        island.rotation.y = -Math.PI / 8;
+        
+        const meshesToOutline: THREE.Mesh[] = [];
+
+        island.traverse((child: any) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            
+            // 1. Smooth shading for low poly
+            if (child.geometry) {
+               child.geometry.computeVertexNormals();
+            }
+
+            // 2. Toon Material with specific color overrides
+            const originalMat = child.material as any;
+            if (!originalMat) return;
+            
+            const name = (child.name || '').toLowerCase();
+            const matName = (originalMat ? (originalMat.name || '') : '').toLowerCase();
+            let newColor = (originalMat && originalMat.color) ? originalMat.color.clone() : new THREE.Color(0xffffff);
+            
+            if (name.includes('skull') || matName.includes('skull') || name.includes('bone') || matName.includes('bone')) {
+                newColor.setHex(0xEBE5CE); // Off-white/Bone
+            } else if (name.includes('tree') || matName.includes('leaf') || name.includes('grass') || name.includes('greenery')) {
+                newColor.setHex(0x2d7a2d); // Vibrant forest green
+            } else if (name.includes('rock') || matName.includes('rock') || name.includes('cliff') || name.includes('base') || name.includes('stone')) {
+                newColor.setHex(0xd1953f); // Warm yellow-orange base
+            }
+
+            child.material = new THREE.MeshToonMaterial({
+               color: newColor,
+               map: originalMat ? originalMat.map : null,
+               gradientMap: threeTone,
+            });
+            
+            meshesToOutline.push(child);
           }
+        });
 
-          // 2. Toon Material with specific color overrides
-          const originalMat = child.material;
-          const name = (child.name || '').toLowerCase();
-          const matName = (originalMat.name || '').toLowerCase();
-          let newColor = originalMat.color ? originalMat.color.clone() : new THREE.Color(0xffffff);
-          
-          if (name.includes('skull') || matName.includes('skull') || name.includes('bone') || matName.includes('bone')) {
-              newColor.setHex(0xEBE5CE); // Off-white/Bone
-          } else if (name.includes('tree') || matName.includes('leaf') || name.includes('grass') || matName.includes('grass') || name.includes('greenery')) {
-              newColor.setHex(0x2d7a2d); // Vibrant forest green
-          } else if (name.includes('rock') || matName.includes('rock') || name.includes('cliff') || name.includes('base') || matName.includes('stone')) {
-              newColor.setHex(0xd1953f); // Warm yellow-orange base
-          }
-
-          child.material = new THREE.MeshToonMaterial({
-             color: newColor,
-             map: originalMat.map || null,
-             gradientMap: threeTone,
-          });
-
-          // 3. Thick Black Anime Outline (Inverted Hull)
+        // 3. Thick Black Anime Outline (Inverted Hull) - Added after traverse to avoid mod-during-iter
+        meshesToOutline.forEach(mesh => {
           const outlineMat = new THREE.MeshBasicMaterial({ 
              color: 0x000000, 
              side: THREE.BackSide 
           });
-          const outlineMesh = new THREE.Mesh(child.geometry, outlineMat);
-          // Scale out slightly based on the size of the mesh
+          const outlineMesh = new THREE.Mesh(mesh.geometry, outlineMat);
           outlineMesh.scale.multiplyScalar(1.02); 
-          child.add(outlineMesh);
-        }
-      });
-      scene.add(island);
-    });
+          mesh.add(outlineMesh);
+        });
+
+        scene.add(island);
+        console.log('Island loaded successfully at background position');
+      },
+      undefined,
+      (error) => console.error('Error loading island:', error)
+    );
 
 
     const raycaster = new THREE.Raycaster();
@@ -231,9 +246,17 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     };
     window.addEventListener('click', onMouseClick);
 
-    const clock = new THREE.Clock();
+    // Using Date.now for time to avoid THREE.Clock deprecation if applicable
+    let lastTime = Date.now();
+    let elapsed = 0;
+    
     const animate = () => {
-      const t = clock.getElapsedTime();
+      const now = Date.now();
+      const delta = (now - lastTime) / 1000;
+      lastTime = now;
+      elapsed += delta;
+      const t = elapsed;
+
       if (controls) controls.update();
       if (waterRef.current) waterRef.current.material.uniforms['time'].value += 1.0 / 60.0;
 
