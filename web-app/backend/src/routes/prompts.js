@@ -5,18 +5,42 @@ import { trackEvent } from '../services/AnalyticsService.js';
 import { requireAuth } from '../middleware/auth.js';
 import { query } from '../models/database.js';
 import { ingestPrompt } from '../services/AIService.js';
+import { checkGenerationQuota } from '../services/QuotaService.js';
 
 const router = Router();
 
 // POST /api/prompts/generate — generate prompt from template + form data
-router.post('/generate', (req, res) => {
+router.post('/generate', async (req, res) => {
   const { templateId, formData, options } = req.body;
 
   if (!templateId || typeof formData !== 'object') {
     return res.status(400).json({ error: 'templateId and formData are required.' });
   }
 
-  const result = generatePrompt(templateId, formData, options || {});
+  // 1. Check Quota
+  const quota = await checkGenerationQuota(req);
+  if (!quota.allowed) {
+    return res.status(429).json({ 
+      error: 'Daily limit reached.', 
+      message: 'You have used your 15 free generations for today. Please sign in to continue.',
+      quota 
+    });
+  }
+
+  // 2. Parse Slash Commands from formData.topic (if exists)
+  let topic = formData.topic || '';
+  let commandDetected = null;
+  if (topic.startsWith('/improve ')) {
+    commandDetected = 'improve';
+    formData.topic = topic.replace('/improve ', '').trim();
+    // In the future, this could route to a completely different agent/template
+  } else if (topic.startsWith('/expand ')) {
+    commandDetected = 'expand';
+    formData.topic = topic.replace('/expand ', '').trim();
+  }
+
+  // 3. Generate Prompt (Sync for now, simulating expansion via LLM options)
+  const result = generatePrompt(templateId, formData, { ...options, command: commandDetected });
   if (!result) {
     return res.status(404).json({ error: 'Template not found.' });
   }
@@ -29,11 +53,14 @@ router.post('/generate', (req, res) => {
     sessionId: req.headers['x-session-id'],
     userId: req.user?.id,
     qualityScore: scored.overallScore,
-    ipAddress: req.ip,
+    ipAddress: req.ip || req.connection.remoteAddress,
+    metadata: { command: commandDetected }
   });
 
-  res.json({ ...result, qualityScore: scored });
+  // Return generated prompt with quota limits attached
+  res.json({ ...result, qualityScore: scored, quota });
 });
+
 
 // POST /api/prompts/save — save a generated prompt to the user's library
 router.post('/save', requireAuth, async (req, res) => {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { GoogleLogin } from '@react-oauth/google'
 import { api } from '../services/api'
 import type { Template, FormStructure, GenerateResult, FormData } from '../types'
 import { PromptCard } from '../components/PromptCard'
@@ -55,6 +56,10 @@ export function GeneratorPage() {
   const [generating, setGenerating] = useState(false)
   const [error, setError]           = useState('')
   const [loadingForm, setLoadingForm] = useState(false)
+  
+  // Quota specific state
+  const [quotaExceeded, setQuotaExceeded] = useState(false)
+  const [remainingTries, setRemainingTries] = useState<number | string | null>(null)
 
   const filledCount = form ? form.fields.filter(f => formData[f.name]?.trim()).length : 0
   const requiredCount = form ? form.fields.filter(f => f.required).length : 0
@@ -84,9 +89,11 @@ export function GeneratorPage() {
     if (!selected || !form) return
     setGenerating(true)
     setError('')
+    setQuotaExceeded(false)
     try {
-      const res = await api.prompts.generate(selected, formData)
+      const res = await api.prompts.generate(selected, formData) as any;
       setResult(res)
+      if (res.quota) setRemainingTries(res.quota.remaining)
       setOutputState({ selectedIndex: 0, editedText: res.variations[0].text })
       api.analytics.track('prompt_generated', selected, {
         qualityScore: res.qualityScore.overallScore,
@@ -95,10 +102,32 @@ export function GeneratorPage() {
         requiredCount,
         promptLength: res.prompt.length,
       })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Generation failed')
+    } catch (err: any) {
+      if (err.status === 429) {
+        setQuotaExceeded(true)
+        setError(err.message || 'Daily limit reached. Please sign in to continue.')
+      } else {
+        setError(err.message || 'Generation failed')
+      }
     } finally {
       setGenerating(false)
+    }
+  }
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    try {
+      if (credentialResponse.credential) {
+        setGenerating(true)
+        await api.auth.google(credentialResponse.credential)
+        setQuotaExceeded(false)
+        setError('')
+        setRemainingTries('Unlimited')
+        // Try generating again immediately
+        await handleGenerate()
+      }
+    } catch (e) {
+      setGenerating(false)
+      setError('Google Sign-In failed.')
     }
   }
 
@@ -222,7 +251,7 @@ export function GeneratorPage() {
                 <div className="flex-1">
                   <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
                     <span>{filledCount} / {form.fields.length} filled</span>
-                    <span>{requiredCount} required</span>
+                    {remainingTries !== null && <span className="text-purple-400">{remainingTries} tries remaining</span>}
                   </div>
                   <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
                     <div
@@ -236,14 +265,25 @@ export function GeneratorPage() {
                   variant="primary"
                   size="lg"
                   loading={generating}
-                  disabled={!canGenerate}
+                  disabled={!canGenerate && !generating}
                   onClick={handleGenerate}
                 >
                   {generating ? 'Generating...' : 'Generate ✨'}
                 </Button>
               </div>
 
-              {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
+              {quotaExceeded && (
+                <div className="mt-5 p-5 rounded-xl border border-red-500/20 bg-red-500/10 flex flex-col items-center">
+                  <p className="text-sm text-red-400 font-semibold mb-3 text-center">
+                    {error}
+                  </p>
+                  <GoogleLogin 
+                    onSuccess={handleGoogleSuccess} 
+                    onError={() => setError('Google login failed or was cancelled.')}
+                  />
+                </div>
+              )}
+              {error && !quotaExceeded && <p className="text-sm text-red-400 mt-3">{error}</p>}
             </>
           )}
         </div>

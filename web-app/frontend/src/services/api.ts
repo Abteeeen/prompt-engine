@@ -13,23 +13,54 @@ async function readJsonSafe(res: Response): Promise<any> {
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const sessionId = getSessionId()
+  const token = localStorage.getItem('token')
+  const headers: Record<string, string> = { 
+    'Content-Type': 'application/json', 
+    'X-Session-Id': sessionId, 
+    ...options?.headers as Record<string, string> 
+  }
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', 'X-Session-Id': sessionId, ...options?.headers },
+    headers,
     ...options,
   })
+  
   if (!res.ok) {
     const err = await readJsonSafe(res)
     const msg =
       (err && typeof err === 'object' && 'error' in err && typeof (err as any).error === 'string' && (err as any).error) ||
       res.statusText ||
       `Request failed (${res.status})`
-    throw new Error(msg)
+      
+    // Custom error to allow catching 429 easily
+    const errorObj = new Error(msg) as any;
+    errorObj.status = res.status;
+    throw errorObj;
   }
+
   const data = await readJsonSafe(res)
   return data as T
 }
 
 export const api = {
+  auth: {
+    google: async (credential: string) => {
+      const res = await request<{token: string, user: any}>('/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ credential }),
+      })
+      localStorage.setItem('token', res.token)
+      return res.user
+    },
+    profile: () => request<any>('/users/profile'),
+    logout: () => {
+      localStorage.removeItem('token')
+    }
+  },
   templates: {
     list: () => request<Template[]>('/templates'),
     get:  (id: string) => request<Template>(`/templates/${encodeURIComponent(id)}`),
