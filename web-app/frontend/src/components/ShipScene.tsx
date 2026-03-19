@@ -155,8 +155,9 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
       const customSky = gltf.scene;
       
       // Position and scale the custom sky dome
-      customSky.position.set(0, 0, 0);
-      customSky.scale.setScalar(5000.0); // Make it massively encapsulate the whole scene limit
+      customSky.position.set(0, -100, 0); // Lowered slightly so the horizon line matches the water
+      // The original model is ~250,000 units wide. Scale 0.02 brings it to ~5000 units.
+      customSky.scale.setScalar(0.02); 
       
       // Ensure the sky is visible from the inside and not affected by scene lighting/fog
       customSky.traverse((child: any) => {
@@ -169,7 +170,7 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
              map: skyTexture,
              color: 0xffffff, // Pure white so texture colors show exactly as is
              side: THREE.DoubleSide,
-             depthWrite: false, 
+             depthWrite: false, // Background layer
              fog: false
           });
           child.material = newMat;
