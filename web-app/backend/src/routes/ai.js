@@ -1,3 +1,4 @@
+import { Router } from 'express';
 import { generateWithAI, generateArenaResults, generateOptimizedPrompt } from '../services/AIService.js';
 import security from '../services/SecurityService.js';
 import learning from '../services/LearningService.js';
@@ -5,7 +6,7 @@ import { scorePrompt } from '../services/QualityScorerService.js';
 import { trackEvent } from '../services/AnalyticsService.js';
 import logger from '../utils/logger.js';
 
-// ... (keep existing imports/setup)
+const router = Router();
 
 // POST /api/ai/arena
 // Runs fleet orchestration comparing multiple models

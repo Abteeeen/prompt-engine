@@ -43,7 +43,19 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-export function PromptDisplay({ result, onStateChange, onCopy }: { result: GenerateResult; onStateChange?: (s: PromptDisplayState) => void; onCopy?: () => void }) {
+export function PromptDisplay({ 
+  result, 
+  onStateChange, 
+  onCopy, 
+  onOptimize, 
+  onArena 
+}: { 
+  result: GenerateResult; 
+  onStateChange?: (s: PromptDisplayState) => void; 
+  onCopy?: () => void;
+  onOptimize?: (text: string) => void;
+  onArena?: (text: string) => void;
+}) {
   const [selected, setSelected] = useState(0)
   const [showScore, setShowScore] = useState(false)
   const [edited, setEdited]       = useState(result.variations[0].text)
@@ -77,8 +89,20 @@ export function PromptDisplay({ result, onStateChange, onCopy }: { result: Gener
             <QualityScoreMini data={result.qualityScore} />
             <span className="text-xs text-gray-600">· Edit freely below</span>
           </div>
-          <div onClickCapture={() => onCopy?.()}>
-            <CopyButton text={edited} />
+          <div className="flex items-center gap-2">
+            {onOptimize && (
+              <Button size="sm" variant="secondary" onClick={() => onOptimize(edited)}>
+                ✨ Optimize
+              </Button>
+            )}
+            {onArena && (
+              <Button size="sm" variant="secondary" onClick={() => onArena(edited)}>
+                ⚔️ Arena
+              </Button>
+            )}
+            <div onClickCapture={() => onCopy?.()}>
+              <CopyButton text={edited} />
+            </div>
           </div>
         </div>
         <textarea

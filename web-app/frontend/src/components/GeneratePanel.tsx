@@ -113,9 +113,9 @@ export function GeneratePanel({ templates, onGenerate, onLoading }: GeneratePane
                             onClick={handleOptimize}
                             disabled={isOptimizing || input.trim().length < 5}
                             title="Optimize Prompt (Autonomous Optimizer)"
-                            className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 flex items-center gap-1"
+                            className="px-3 py-2 rounded-lg text-xs font-medium text-[var(--accent-purple)] bg-[var(--accent-purple)]/10 hover:bg-[var(--accent-purple)]/20 disabled:opacity-30 flex items-center gap-1.5 transition-all border border-[var(--accent-purple)]/20"
                         >
-                            {isOptimizing ? '✨...' : '✨'}
+                            {isOptimizing ? '✨ Optimizing...' : '✨ Optimize'}
                         </button>
                         <button
                             onClick={handleArena}

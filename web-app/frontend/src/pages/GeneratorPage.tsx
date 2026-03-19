@@ -7,6 +7,7 @@ import { PromptCard } from '../components/PromptCard'
 import { DynamicForm } from '../components/DynamicForm'
 import { PromptDisplay } from '../components/PromptDisplay'
 import { Button } from '../components/ui/Button'
+import { ArenaModal } from '../components/ArenaModal'
 
 type Mode = 'quick' | 'standard' | 'advanced'
 
@@ -56,6 +57,9 @@ export function GeneratorPage() {
   const [generating, setGenerating] = useState(false)
   const [error, setError]           = useState('')
   const [loadingForm, setLoadingForm] = useState(false)
+  const [isOptimizing, setIsOptimizing] = useState(false)
+  const [arenaResults, setArenaResults] = useState<{ results: any[]; jury: any } | null>(null)
+  const [isArenaModalOpen, setIsArenaModalOpen] = useState(false)
   
   // Quota specific state
   const [quotaExceeded, setQuotaExceeded] = useState(false)
@@ -121,6 +125,56 @@ export function GeneratorPage() {
       } else {
         setError(err.message || 'Generation failed')
       }
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const handleOptimize = async () => {
+    // Collect all form data values and optimize them into a better topic
+    const rawContext = Object.values(formData).filter(v => v).join('; ')
+    if (!rawContext) {
+      setError('Please fill some parts of the form first so I have something to optimize.')
+      return
+    }
+
+    setIsOptimizing(true)
+    setError('')
+    try {
+      const data = await api.ai.optimize(rawContext)
+      // We can't easily map optimized results back to individual fields, 
+      // but we can put it in the most significant field (usually 'topic' or 'desc')
+      const targetField = form?.fields[0].name || 'topic'
+      setFormData(prev => ({ ...prev, [targetField]: data.optimized }))
+      alert('Prompt logic optimized! Check the form fields.')
+    } catch (err: any) {
+      setError('Optimization failed: ' + err.message)
+    } finally {
+      setIsOptimizing(false)
+    }
+  }
+
+  const handleResultOptimize = async (text: string) => {
+    setIsOptimizing(true)
+    try {
+      const data = await api.ai.optimize(text)
+      setOutputState(prev => prev ? { ...prev, editedText: data.optimized } : null)
+      alert('Prompt optimized! The text has been updated.')
+    } catch (err: any) {
+      setError('Optimization failed: ' + err.message)
+    } finally {
+      setIsOptimizing(false)
+    }
+  }
+
+  const handleResultArena = async (text: string) => {
+    setGenerating(true)
+    try {
+      const data = await api.ai.arena(text)
+      setArenaResults(data)
+      setIsArenaModalOpen(true)
+    } catch (err: any) {
+      setError('Arena failed: ' + err.message)
     } finally {
       setGenerating(false)
     }
@@ -216,10 +270,10 @@ export function GeneratorPage() {
             <div className="flex items-center gap-3">
               <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">2. Fill the form</h2>
               {remainingTries !== null && (
-                <div className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 flex items-center gap-1.5 overflow-hidden">
-                  <div className="w-1 h-1 rounded-full bg-purple-400 animate-pulse" />
-                  <span className="text-[10px] font-mono text-gray-400">
-                    {remainingTries === 'Unlimited' ? '∞' : `${usedTries}/${limitTries}`}
+                <div className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center gap-2 overflow-hidden">
+                  <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                  <span className="text-[11px] font-bold text-purple-300">
+                    {remainingTries === 'Unlimited' ? 'Quota: Unlimited' : `Tries Left: ${typeof remainingTries === 'number' ? remainingTries : (limitTries - usedTries)}`}
                   </span>
                 </div>
               )}
@@ -284,15 +338,27 @@ export function GeneratorPage() {
                   </div>
                 </div>
 
-                <Button
-                  variant="primary"
-                  size="lg"
-                  loading={generating}
-                  disabled={!canGenerate && !generating}
-                  onClick={handleGenerate}
-                >
-                  {generating ? 'Generating...' : 'Generate ✨'}
-                </Button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleOptimize}
+                      disabled={isOptimizing || !selected}
+                      title="Optimize Input (Autonomous Optimizer)"
+                      className="p-2.5 rounded-xl text-purple-400 hover:text-white hover:bg-purple-500/20 border border-purple-500/20 disabled:opacity-30 transition-all flex items-center gap-1"
+                    >
+                      {isOptimizing ? '✨...' : '✨ Optimize'}
+                    </button>
+
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      loading={generating}
+                      disabled={!canGenerate && !generating}
+                      onClick={handleGenerate}
+                    >
+                      {generating ? 'Generating...' : 'Generate ✨'}
+                    </Button>
+                  </div>
               </div>
 
               {quotaExceeded && (
@@ -335,13 +401,15 @@ export function GeneratorPage() {
             </div>
           )}
 
-          {result && (
-            <PromptDisplay
-              result={result}
-              onStateChange={setOutputState}
-              onCopy={trackCopy}
-            />
-          )}
+            {result && (
+              <PromptDisplay
+                result={result}
+                onStateChange={setOutputState}
+                onCopy={trackCopy}
+                onOptimize={handleResultOptimize}
+                onArena={handleResultArena}
+              />
+            )}
           {result && (
             <div className="mt-4">
               <p className="text-xs text-gray-500 mb-2">Was this prompt helpful?</p>
@@ -353,6 +421,16 @@ export function GeneratorPage() {
           )}
         </div>
       </div>
+      {/* Arena Modal */}
+      {arenaResults && (
+        <ArenaModal
+          isOpen={isArenaModalOpen}
+          onClose={() => setIsArenaModalOpen(false)}
+          results={arenaResults.results}
+          jury={arenaResults.jury}
+          prompt={outputState?.editedText || ''}
+        />
+      )}
     </div>
   )
 }
