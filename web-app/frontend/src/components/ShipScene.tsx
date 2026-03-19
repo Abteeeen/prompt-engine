@@ -61,7 +61,7 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     skyUniforms['mieDirectionalG'].value = 0.8;
 
     const sunVec = new THREE.Vector3();
-    const phi = THREE.MathUtils.degToRad(isDay ? 88 : 178); // Sun elevation
+    const phi = THREE.MathUtils.degToRad(isDay ? 86 : 175); // Adjusted for better horizon color
     const theta = THREE.MathUtils.degToRad(180);
     sunVec.setFromSphericalCoords(1, phi, theta);
     skyUniforms['sunPosition'].value.copy(sunVec);
@@ -176,13 +176,12 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
         const cloudMaterial = new THREE.MeshStandardMaterial({
             map: cloudTexture,
             transparent: true,
-            opacity: isDay ? 0.6 : 0.3,
+            opacity: isDay ? 0.7 : 0.4,
             depthWrite: false,
             side: THREE.DoubleSide,
-            color: isDay ? 0xffffff : 0x556688,
-            blending: THREE.AdditiveBlending, // Makes black background transparent
-            emissive: isDay ? 0xffffff : 0x000000,
-            emissiveIntensity: isDay ? 0.2 : 0
+            color: isDay ? 0xffffff : 0x7788aa,
+            blending: THREE.NormalBlending, // Fixes blue square artifacts
+            fog: true
         });
 
         const cluster = new THREE.Group();
@@ -243,9 +242,10 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
         const island = gltf.scene;
         
         // Position the island closer, acting as a massive mountain in the background
-        island.position.set(100, -25, -350); 
-        island.scale.setScalar(180.0); // 1.5x of previous 120
-        island.rotation.y = Math.PI / 4;
+        // Scale and orient the island to face the ship's figurehead directly
+        island.position.set(0, -35, -450); 
+        island.scale.setScalar(220.0); // Bumped up for more "mountainous" feel
+        island.rotation.y = Math.PI * 0.95; // Flipped to face the ship
         
         const meshesToOutline: THREE.Mesh[] = [];
 
