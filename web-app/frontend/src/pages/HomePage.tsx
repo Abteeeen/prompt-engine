@@ -11,6 +11,7 @@ import { PromptCard } from '../components/PromptCard'
 import { QualityScoreMini } from '../components/QualityScore'
 
 import PromptHistory, { saveToHistory, type HistoryItem } from '../components/PromptHistory'
+import { ArenaModal } from '../components/ArenaModal'
 
 
 
@@ -233,6 +234,14 @@ function AIGenerator() {
   const [error, setError] = useState('')
 
   const [editedPrompt, setEditedPrompt] = useState('')
+  const [isOptimizing, setIsOptimizing] = useState(false)
+  const [isArenaLoading, setIsArenaLoading] = useState(false)
+  const [arenaResults, setArenaResults] = useState<{ results: any[]; jury: any } | null>(null)
+  const [isArenaModalOpen, setIsArenaModalOpen] = useState(false)
+  const [securityStatus, setSecurityStatus] = useState<{ isSafe: boolean; riskLevel: string } | null>(null)
+  const [remainingTries, setRemainingTries] = useState<number | string | null>(null)
+  const [usedTries, setUsedTries] = useState<number>(0)
+  const [limitTries, setLimitTries] = useState<number>(15)
 
   const [promptType, setPromptType] = useState<PromptType>('auto')
 
@@ -267,6 +276,24 @@ function AIGenerator() {
     document.addEventListener('mousedown', handleClickOutside)
 
     return () => document.removeEventListener('mousedown', handleClickOutside)
+
+  }, [])
+
+
+
+  useEffect(() => {
+
+    // Initial quota check
+
+    api.prompts.getQuota().then(q => {
+
+      setRemainingTries(q.remaining)
+
+      setUsedTries(q.totalUsed)
+
+      setLimitTries(q.limit)
+
+    })
 
   }, [])
 
@@ -310,6 +337,20 @@ function AIGenerator() {
 
       setEditedPrompt(data.prompt)
 
+      if (data.security) setSecurityStatus(data.security)
+
+
+
+      // Refresh quota
+
+      api.prompts.getQuota().then(q => {
+
+        setRemainingTries(q.remaining)
+
+        setUsedTries(q.totalUsed)
+
+      })
+
       
 
       // Save to history
@@ -349,6 +390,60 @@ function AIGenerator() {
     } finally {
 
       setLoading(false)
+
+    }
+
+  }
+
+
+
+  const handleOptimizeInput = async () => {
+
+    if (input.trim().length < 5) return
+
+    setIsOptimizing(true)
+
+    setError('')
+
+    try {
+
+      const data = await api.ai.optimize(input)
+
+      setInput(data.optimized)
+
+    } catch (err: any) {
+
+      setError('Optimization failed: ' + err.message)
+
+    } finally {
+
+      setIsOptimizing(false)
+
+    }
+
+  }
+
+
+
+  const handleArenaRequest = async (text: string) => {
+
+    setIsArenaLoading(true)
+
+    try {
+
+      const data = await api.ai.arena(text)
+
+      setArenaResults(data)
+
+      setIsArenaModalOpen(true)
+
+    } catch (err: any) {
+
+      setError('Arena failed: ' + err.message)
+
+    } finally {
+
+      setIsArenaLoading(false)
 
     }
 
@@ -453,6 +548,34 @@ function AIGenerator() {
       
 
       <div className="w-full max-w-3xl mx-auto">
+
+
+
+        {/* Header with Quota */}
+
+        <div className="flex items-center justify-between mb-4">
+
+          <div className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Autonomous Generator v2</div>
+
+          {remainingTries !== null && (
+
+            <div className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center gap-2">
+
+              <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+
+              <span className="text-[11px] font-bold text-purple-300">
+
+                {remainingTries === 'Unlimited' ? 'Quota: Unlimited' : `Tries Left: ${remainingTries}`}
+
+              </span>
+
+            </div>
+
+          )}
+
+        </div>
+
+
 
         {/* Main Input Container */}
 
@@ -674,6 +797,26 @@ function AIGenerator() {
 
               </span>
 
+
+
+              <button
+
+                onClick={handleOptimizeInput}
+
+                disabled={isOptimizing || input.trim().length < 5}
+
+                title="Optimize Input (Autonomous Optimizer)"
+
+                className="px-3 py-2 rounded-xl text-[10px] font-bold text-purple-400 hover:text-white hover:bg-purple-500/20 border border-purple-500/15 disabled:opacity-30 transition-all flex items-center gap-1"
+
+              >
+
+                {isOptimizing ? '✨...' : '✨ Optimize'}
+
+              </button>
+
+
+
               <button
 
                 onClick={() => generate()}
@@ -826,6 +969,20 @@ function AIGenerator() {
 
                 <div className="flex items-center gap-3">
 
+                  <button
+
+                    onClick={() => handleArenaRequest(editedPrompt)}
+
+                    disabled={isArenaLoading}
+
+                    className="h-8 px-3 rounded-lg text-xs font-semibold text-purple-400 hover:text-white hover:bg-purple-500/20 border border-purple-500/15 transition-all flex items-center gap-1"
+
+                  >
+
+                    {isArenaLoading ? '⚔️...' : '⚔️ Arena'}
+
+                  </button>
+
                   <QualityScoreMini data={result.qualityScore} />
 
                   <CopyBtn text={editedPrompt} large />
@@ -883,6 +1040,28 @@ function AIGenerator() {
         )}
 
       </div>
+
+
+
+      {/* Arena Modal */}
+
+      {arenaResults && (
+
+        <ArenaModal
+
+          isOpen={isArenaModalOpen}
+
+          onClose={() => setIsArenaModalOpen(false)}
+
+          results={arenaResults.results}
+
+          jury={arenaResults.jury}
+
+          prompt={editedPrompt}
+
+        />
+
+      )}
 
     </>
 

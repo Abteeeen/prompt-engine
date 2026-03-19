@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import type { Template, QualityScore } from '../types';
 import { ArenaModal } from './ArenaModal';
@@ -27,6 +27,17 @@ export function GeneratePanel({ templates, onGenerate, onLoading }: GeneratePane
     const [arenaResults, setArenaResults] = useState<{ results: any[]; jury: any } | null>(null);
     const [isArenaModalOpen, setIsArenaModalOpen] = useState(false);
     const [securityStatus, setSecurityStatus] = useState<{ isSafe: boolean; riskLevel: string } | null>(null);
+    const [remainingTries, setRemainingTries] = useState<number | string | null>(null);
+    const [usedTries, setUsedTries] = useState<number>(0);
+    const [limitTries, setLimitTries] = useState<number>(15);
+
+    useEffect(() => {
+        api.prompts.getQuota().then(q => {
+            setRemainingTries(q.remaining);
+            setUsedTries(q.totalUsed);
+            setLimitTries(q.limit);
+        });
+    }, []);
 
     const handleGenerate = async () => {
         if (!input.trim() || input.trim().length < 5) return;
@@ -38,6 +49,12 @@ export function GeneratePanel({ templates, onGenerate, onLoading }: GeneratePane
             const data = await api.ai.generate(input);
             onGenerate(data);
             if (data.security) setSecurityStatus(data.security);
+            
+            // Refresh quota
+            api.prompts.getQuota().then(q => {
+                setRemainingTries(q.remaining);
+                setUsedTries(q.totalUsed);
+            });
         } catch (err) {
             console.error('Generation failed:', err);
         } finally {
@@ -89,9 +106,19 @@ export function GeneratePanel({ templates, onGenerate, onLoading }: GeneratePane
     return (
         <div className="panel-gradient rounded-2xl p-6 h-full flex flex-col">
             {/* Header */}
-            <div className="mb-6">
-                <h2 className="text-xl font-semibold text-white mb-2">Create Prompt</h2>
-                <p className="text-sm text-white/50">Describe what you need and let AI craft the perfect prompt</p>
+            <div className="mb-6 flex items-start justify-between">
+                <div>
+                    <h2 className="text-xl font-semibold text-white mb-2">Create Prompt</h2>
+                    <p className="text-sm text-white/50">Describe what you need and let AI craft the perfect prompt</p>
+                </div>
+                {remainingTries !== null && (
+                    <div className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                        <span className="text-[11px] font-bold text-purple-300">
+                            {remainingTries === 'Unlimited' ? '∞' : `Tries Left: ${remainingTries}`}
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Input Area */}
