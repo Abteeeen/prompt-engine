@@ -48,24 +48,8 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     const skyColor = isDay ? 0x88ccff : 0x01081a; 
     
     const scene = new THREE.Scene();
-    
-    // --- REALISTIC SKY SYSTEM ---
-    const sky = new Sky();
-    sky.scale.setScalar(10000);
-    scene.add(sky);
-
-    const skyUniforms = sky.material.uniforms;
-    skyUniforms['turbidity'].value = isDay ? 0.6 : 10;
-    skyUniforms['rayleigh'].value = isDay ? 2 : 0.1;
-    skyUniforms['mieCoefficient'].value = 0.005;
-    skyUniforms['mieDirectionalG'].value = 0.8;
-
-    const sunVec = new THREE.Vector3();
-    const phi = THREE.MathUtils.degToRad(isDay ? 86 : 175); // Adjusted for better horizon color
-    const theta = THREE.MathUtils.degToRad(180);
-    sunVec.setFromSphericalCoords(1, phi, theta);
-    skyUniforms['sunPosition'].value.copy(sunVec);
-
+    // Set base background color based on time of day
+    scene.background = new THREE.Color(skyColor);
     // Dark navy fog matching the water color so the distance fades naturally
     scene.fog = new THREE.FogExp2(0x001e4d, 0.0015); 
 
@@ -170,9 +154,24 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     gltfLoader.load('/models/sky/scene.gltf', (gltf) => {
       const customSky = gltf.scene;
       
-      // Position and scale the custom sky clouds in the environment
-      customSky.position.set(0, 50, -200);
-      customSky.scale.setScalar(50.0);
+      // Position and scale the custom sky dome
+      customSky.position.set(0, 0, 0);
+      customSky.scale.setScalar(800.0);
+      
+      // Ensure the sky is visible from the inside and not affected by scene lighting/fog
+      customSky.traverse((child: any) => {
+        if (child.isMesh && child.material) {
+          // Force rendering from the inside out and ignore lighting
+          const newMat = new THREE.MeshBasicMaterial({
+             map: child.material.map,
+             color: child.material.color || 0xffffff,
+             side: THREE.BackSide,
+             depthWrite: false, 
+             fog: false
+          });
+          child.material = newMat;
+        }
+      });
       
       scene.add(customSky);
       console.log('Custom sky model loaded successfully');
