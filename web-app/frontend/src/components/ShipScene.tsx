@@ -166,52 +166,55 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
       posterGroup.add(mesh);
     });
 
-    // --- REALISTIC 3D CLOUD SYSTEM ---
-    const cloudTexture = textureLoader.load('/textures/cloud.png');
+    // --- TRUE 3D MESH CLOUD SYSTEM ---
     const cloudGroup = new THREE.Group();
     scene.add(cloudGroup);
     
-    const numClouds = 25;
-    for (let i = 0; i < numClouds; i++) {
-        const cloudMaterial = new THREE.MeshStandardMaterial({
-            map: cloudTexture,
-            transparent: true,
-            opacity: isDay ? 0.7 : 0.4,
-            depthWrite: false,
-            side: THREE.DoubleSide,
-            color: isDay ? 0xffffff : 0x7788aa,
-            blending: THREE.NormalBlending, // Fixes blue square artifacts
-            fog: true
-        });
+    // Low-poly icosahedron for stylized 3D clouds
+    const cloudGeo = new THREE.IcosahedronGeometry(30, 1); 
+    
+    // Solid toon-like material for cartoon/stylized look
+    const cloudMaterial = new THREE.MeshToonMaterial({
+        color: isDay ? 0xffffff : 0x7788aa,
+        transparent: true,
+        opacity: isDay ? 0.95 : 0.85,
+    });
 
+    const numClouds = 20;
+    for (let i = 0; i < numClouds; i++) {
         const cluster = new THREE.Group();
-        const numPuffs = 3 + Math.floor(Math.random() * 3);
+        const numPuffs = 5 + Math.floor(Math.random() * 5); // 5 to 9 puffs
+        
         for (let j = 0; j < numPuffs; j++) {
-            const cloudGeo = new THREE.PlaneGeometry(
-                180 + Math.random() * 120, 
-                100 + Math.random() * 60
-            );
             const puff = new THREE.Mesh(cloudGeo, cloudMaterial);
+            const scale = 1 + Math.random() * 1.5;
+            // Flatten clouds slightly on the Y axis
+            puff.scale.set(scale, scale * 0.6, scale); 
+            
             // Random offset within the cluster
             puff.position.set(
-              (Math.random() - 0.5) * 60,
-              (Math.random() - 0.5) * 30,
-              (Math.random() - 0.5) * 60
+              (Math.random() - 0.5) * 80,
+              (Math.random() - 0.5) * 20,
+              (Math.random() - 0.5) * 80
             );
-            puff.rotation.z = Math.random() * Math.PI;
+            puff.rotation.set(
+              Math.random() * Math.PI,
+              Math.random() * Math.PI,
+              Math.random() * Math.PI
+            );
             cluster.add(puff);
         }
 
         const angle = Math.random() * Math.PI * 2;
-        const dist = 600 + Math.random() * 1200;
-        const altitude = 250 + Math.random() * 200;
+        const dist = 600 + Math.random() * 800;
+        const altitude = 150 + Math.random() * 180;
+        
         cluster.position.set(
             Math.cos(angle) * dist,
             altitude,
             Math.sin(angle) * dist
         );
         
-        cluster.lookAt(0, altitude, 0); // Face the center roughly
         cloudGroup.add(cluster);
     }
 
@@ -245,7 +248,7 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
         // Scale and orient the island to face the ship's figurehead directly
         island.position.set(0, -35, -450); 
         island.scale.setScalar(220.0); // Bumped up for more "mountainous" feel
-        island.rotation.y = Math.PI * 0.95; // Flipped to face the ship
+        island.rotation.y = -Math.PI * 0.05; // Flipped to face the ship properly
         
         const meshesToOutline: THREE.Mesh[] = [];
 
