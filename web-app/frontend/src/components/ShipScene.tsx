@@ -166,57 +166,17 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
       posterGroup.add(mesh);
     });
 
-    // --- TRUE 3D MESH CLOUD SYSTEM ---
-    const cloudGroup = new THREE.Group();
-    scene.add(cloudGroup);
-    
-    // Low-poly icosahedron for stylized 3D clouds
-    const cloudGeo = new THREE.IcosahedronGeometry(30, 1); 
-    
-    // Solid toon-like material for cartoon/stylized look
-    const cloudMaterial = new THREE.MeshToonMaterial({
-        color: isDay ? 0xffffff : 0x7788aa,
-        transparent: true,
-        opacity: isDay ? 0.95 : 0.85,
-    });
-
-    const numClouds = 20;
-    for (let i = 0; i < numClouds; i++) {
-        const cluster = new THREE.Group();
-        const numPuffs = 5 + Math.floor(Math.random() * 5); // 5 to 9 puffs
-        
-        for (let j = 0; j < numPuffs; j++) {
-            const puff = new THREE.Mesh(cloudGeo, cloudMaterial);
-            const scale = 1 + Math.random() * 1.5;
-            // Flatten clouds slightly on the Y axis
-            puff.scale.set(scale, scale * 0.6, scale); 
-            
-            // Random offset within the cluster
-            puff.position.set(
-              (Math.random() - 0.5) * 80,
-              (Math.random() - 0.5) * 20,
-              (Math.random() - 0.5) * 80
-            );
-            puff.rotation.set(
-              Math.random() * Math.PI,
-              Math.random() * Math.PI,
-              Math.random() * Math.PI
-            );
-            cluster.add(puff);
-        }
-
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 600 + Math.random() * 800;
-        const altitude = 150 + Math.random() * 180;
-        
-        cluster.position.set(
-            Math.cos(angle) * dist,
-            altitude,
-            Math.sin(angle) * dist
-        );
-        
-        cloudGroup.add(cluster);
-    }
+    // --- LOAD CUSTOM 3D SKY / CLOUD MODEL ---
+    gltfLoader.load('/models/sky/scene.gltf', (gltf) => {
+      const customSky = gltf.scene;
+      
+      // Position and scale the custom sky clouds in the environment
+      customSky.position.set(0, 50, -200);
+      customSky.scale.setScalar(50.0);
+      
+      scene.add(customSky);
+      console.log('Custom sky model loaded successfully');
+    }, undefined, (err) => console.error('Error loading custom sky:', err));
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -355,12 +315,7 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
         }
       });
 
-      if (cloudGroup) {
-        cloudGroup.children.forEach((cluster, idx) => {
-          cluster.position.x += Math.sin(t * 0.05 + idx) * 0.02;
-          cluster.position.z += Math.cos(t * 0.05 + idx) * 0.02;
-        });
-      }
+
 
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
