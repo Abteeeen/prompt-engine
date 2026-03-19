@@ -161,10 +161,13 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
       // Ensure the sky is visible from the inside and not affected by scene lighting/fog
       customSky.traverse((child: any) => {
         if (child.isMesh && child.material) {
+          // Extract the texture (it's stored as an emissiveMap in this specific GLTF)
+          const skyTexture = child.material.emissiveMap || child.material.map;
+          
           // Force rendering from the inside out and ignore lighting
           const newMat = new THREE.MeshBasicMaterial({
-             map: child.material.map,
-             color: child.material.color || 0xffffff,
+             map: skyTexture,
+             color: 0xffffff, // Pure white so texture colors show exactly as is
              side: THREE.BackSide,
              depthWrite: false, 
              fog: false
