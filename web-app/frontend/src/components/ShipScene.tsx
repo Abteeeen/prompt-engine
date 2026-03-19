@@ -53,7 +53,7 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     // Dark navy fog matching the water color so the distance fades naturally
     scene.fog = new THREE.FogExp2(0x001e4d, 0.0015); 
 
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 20000);
     // Position camera to see the ship's deck and the island clearly in the background
     camera.position.set(20, 30, 60); 
     camera.lookAt(0, 5, -20);
@@ -156,7 +156,7 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
       
       // Position and scale the custom sky dome
       customSky.position.set(0, 0, 0);
-      customSky.scale.setScalar(800.0);
+      customSky.scale.setScalar(5000.0); // Make it massively encapsulate the whole scene limit
       
       // Ensure the sky is visible from the inside and not affected by scene lighting/fog
       customSky.traverse((child: any) => {
@@ -168,7 +168,7 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
           const newMat = new THREE.MeshBasicMaterial({
              map: skyTexture,
              color: 0xffffff, // Pure white so texture colors show exactly as is
-             side: THREE.BackSide,
+             side: THREE.DoubleSide,
              depthWrite: false, 
              fog: false
           });
