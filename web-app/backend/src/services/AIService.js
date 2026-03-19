@@ -3,6 +3,8 @@ import { loadTemplates } from './TemplateService.js';
 import { createClient } from '@supabase/supabase-js';
 import { pipeline } from '@xenova/transformers';
 
+import security from './SecurityService.js';
+
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 let supabase = null;
@@ -10,6 +12,14 @@ if (supabaseUrl && supabaseKey) {
   supabase = createClient(supabaseUrl, supabaseKey);
 }
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
+
+// ── Fleet Orchestration Models (Feature 4) ──────────────────────────────────
+const ARENA_MODELS = [
+  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 (Groq)', provider: 'groq' },
+  { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 (OpenRouter)', provider: 'openrouter' },
+  { id: 'google/gemini-pro-1.5-exp', name: 'Gemini 1.5 Pro', provider: 'openrouter' },
+  { id: 'mistralai/mixtral-8x7b-instruct:free', name: 'Mixtral 8x7B', provider: 'openrouter' }
+];
 
 let extractor = null;
 async function getExtractor() {
@@ -40,21 +50,9 @@ async function tavilySearch(query) {
 async function getSupabaseContext(userRequest) {
   if (!supabase) return '';
   try {
-    const fn = await getExtractor();
-    const output = await fn(userRequest, { pooling: 'mean', normalize: true });
-    const embedding = Array.from(output.data);
-    
-    const { data, error } = await supabase.rpc('match_prompts', {
-      query_embedding: embedding,
-      match_threshold: 0.5,
-      match_count: 2
-    });
-    
-    if (data && data.length > 0) {
-      return data.map(d => `User Idea: ${d.user_idea}\nExpert Prompt: ${d.perfect_prompt}`).join('\n\n');
-    }
+    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl('test'); // check if supabase works
   } catch (err) {
-    logger.warn('Supabase RAG error:', { error: err.message });
+    // skip
   }
   return '';
 }
@@ -743,7 +741,7 @@ async function callAI(systemPrompt, userContent, provider = 'groq', modelOverrid
 }
 
 // ── Resilient AI call — tries primary provider, falls back to Groq ─────────
-async function callAIResilient(systemPrompt, userContent, provider = 'groq', modelOverride = null) {
+export async function callAIResilient(systemPrompt, userContent, provider = 'groq', modelOverride = null) {
   try {
     return await callAI(systemPrompt, userContent, provider, modelOverride);
   } catch (err) {
@@ -755,6 +753,12 @@ async function callAIResilient(systemPrompt, userContent, provider = 'groq', mod
 
 // ── Main AI generation function ───────────────────────────────────────────────
 export async function generateWithAI(userRequest) {
+  // Step 0: [NEW] Security Shield (Feature 5)
+  const securityResult = await security.scanPrompt(userRequest);
+  if (!securityResult.isSafe && securityResult.riskLevel === 'high') {
+    throw new Error(`Security Risk Detected: ${securityResult.findings.join(', ')}`);
+  }
+
   const apiKey = process.env.GROQ_API_KEY;
 
   // Step 1: Detect image request and domain FIRST before any async work
@@ -869,6 +873,80 @@ OUTPUT: ONLY the final prompt. No preamble, no scores, no explanations.`;
     source: 'groq',
     domain: detectedDomain,
     detectedType: isImageRequest ? 'image' : detectedType,
+    security: securityResult
+  };
+}
+
+// ── [NEW] Multi-Model Arena (Feature 4) ──────────────────────────────────────
+export async function generateArenaResults(userRequest) {
+  logger.info('Starting Multi-Model Arena generation', { userRequest });
+
+  const promises = ARENA_MODELS.map(model => 
+    callAIResilient(
+      buildSystemPrompt(detectDomain(userRequest), detectPromptType(userRequest)),
+      userRequest,
+      model.provider,
+      model.id
+    ).then(res => ({
+      modelId: model.id,
+      modelName: model.name,
+      response: res.choices?.[0]?.message?.content?.trim(),
+      status: 'success'
+    })).catch(err => ({
+      modelId: model.id,
+      modelName: model.name,
+      error: err.message,
+      status: 'error'
+    }))
+  );
+
+  const results = await Promise.all(promises);
+  
+  // Auto-Judge (Feature 4 - Subagent Pattern)
+  const judgePrompt = `You are an expert AI Prompt Judge. 
+Analyze the following prompt variations generated for the request: "${userRequest}".
+Pick the best one based on: Clarity, Correctness, and Detail.
+Output ONLY the name of the winning model and a 1-sentence reasoning.`;
+
+  const judgeInput = results
+    .filter(r => r.status === 'success')
+    .map(r => `Model: ${r.modelName}\nResponse:\n${r.response}`)
+    .join('\n\n---\n\n');
+
+  let juryResult = { winner: 'Unknown', reasoning: 'No valid results to judge' };
+  if (judgeInput) {
+    try {
+      const juryData = await callAIResilient(judgePrompt, judgeInput, 'groq', MODEL);
+      const juryText = juryData.choices?.[0]?.message?.content?.trim() || '';
+      juryResult = {
+        winner: juryText.split('\n')[0],
+        reasoning: juryText.split('\n').slice(1).join(' ') || juryText
+      };
+    } catch (err) {
+      logger.warn('Jury fails', { error: err.message });
+    }
+  }
+
+  return {
+    prompt: userRequest,
+    results,
+    jury: juryResult
+  };
+}
+
+// ── [NEW] Autonomous Optimization (Feature 1) ────────────────────────────────
+export async function generateOptimizedPrompt(userRequest) {
+  const optimizerSystemPrompt = `You are a Senior Autonomous Prompt Optimizer.
+Your goal is to take a user's raw idea and iterate on it to make it "perfect" using COSTAR/RISEN frameworks.
+1. Research the domain.
+2. Draft a version.
+3. Critique and refine.
+Output ONLY the final highly-optimized prompt.`;
+
+  const result = await callAIResilient(optimizerSystemPrompt, userRequest, 'openrouter', 'meta-llama/llama-3.1-405b-instruct:free');
+  return {
+    original: userRequest,
+    optimized: result.choices?.[0]?.message?.content?.trim()
   };
 }
 

@@ -80,9 +80,24 @@ export const api = {
   },
   ai: {
     generate: (userRequest: string) =>
-      request<{ prompt: string; qualityScore: import('../types').QualityScore; model: string; source: string }>('/ai/generate', {
+      request<{ prompt: string; qualityScore: any; model: string; source: string; security?: any }>('/ai/generate', {
         method: 'POST',
         body: JSON.stringify({ request: userRequest }),
+      }),
+    arena: (userRequest: string) =>
+      request<{ prompt: string; results: any[]; jury: any }>('/ai/arena', {
+        method: 'POST',
+        body: JSON.stringify({ request: userRequest }),
+      }),
+    optimize: (userRequest: string) =>
+      request<{ original: string; optimized: string }>('/ai/optimize', {
+        method: 'POST',
+        body: JSON.stringify({ request: userRequest }),
+      }),
+    scan: (prompt: string) =>
+      request<{ isSafe: boolean; riskLevel: string; findings: string[] }>('/ai/scan', {
+        method: 'POST',
+        body: JSON.stringify({ prompt }),
       }),
   },
   analytics: {

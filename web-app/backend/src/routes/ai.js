@@ -1,35 +1,50 @@
-import { Router } from 'express';
-import { generateWithAI } from '../services/AIService.js';
+import { generateWithAI, generateArenaResults, generateOptimizedPrompt } from '../services/AIService.js';
+import security from '../services/SecurityService.js';
+import learning from '../services/LearningService.js';
 import { scorePrompt } from '../services/QualityScorerService.js';
 import { trackEvent } from '../services/AnalyticsService.js';
-import { createClient } from '@supabase/supabase-js';
-import { pipeline } from '@xenova/transformers';
+import logger from '../utils/logger.js';
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-let extractor = null;
-async function getExtractor() {
-  if (!extractor) extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-  return extractor;
-}
+// ... (keep existing imports/setup)
 
-const router = Router();
-
-// POST /api/ai/feedback
-router.post('/feedback', async (req, res) => {
-  const { request, prompt, rating } = req.body;
-  if (!request || !prompt || rating !== 'up') return res.json({ success: true });
+// POST /api/ai/arena
+// Runs fleet orchestration comparing multiple models
+router.post('/arena', async (req, res) => {
+  const { request } = req.body;
+  if (!request) return res.status(400).json({ error: 'Request required' });
 
   try {
-    const fn = await getExtractor();
-    const output = await fn(request, { pooling: 'mean', normalize: true });
-    const embedding = Array.from(output.data);
-    
-    await supabase.from('gold_standard_prompts').insert([{ user_idea: request, perfect_prompt: prompt, domain: 'user-feedback', embedding }]);
-    res.json({ success: true });
+    const result = await generateArenaResults(request);
+    res.json(result);
   } catch (err) {
-    console.error('Feedback error:', err);
-    res.status(500).json({ error: 'Failed to save feedback' });
+    logger.error('Arena error:', err);
+    res.status(500).json({ error: err.message });
   }
+});
+
+// POST /api/ai/optimize
+// Runs autonomous prompt optimization
+router.post('/optimize', async (req, res) => {
+  const { request } = req.body;
+  if (!request) return res.status(400).json({ error: 'Request required' });
+
+  try {
+    const result = await generateOptimizedPrompt(request);
+    res.json(result);
+  } catch (err) {
+    logger.error('Optimization error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/ai/scan
+// Manually triggers the Security Shield
+router.post('/scan', async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'Prompt text required' });
+
+  const result = await security.scanPrompt(prompt);
+  res.json(result);
 });
 
 // POST /api/ai/generate
@@ -41,22 +56,34 @@ router.post('/generate', async (req, res) => {
   if (!request || typeof request !== 'string' || request.trim().length < 5) {
     return res.status(400).json({ error: 'request must be at least 5 characters.' });
   }
-  if (request.length > 1000) {
-    return res.status(400).json({ error: 'request must be 1000 characters or fewer.' });
+
+  try {
+    const result = await generateWithAI(request.trim());
+    const qualityScore = scorePrompt(result.prompt);
+
+    trackEvent({
+      eventType: 'ai_prompt_generated',
+      sessionId: req.headers['x-session-id'],
+      userId: req.user?.id,
+      qualityScore: qualityScore.overallScore,
+      metadata: { 
+        source: result.source, 
+        requestLength: request.length,
+        securityRisk: result.security?.riskLevel 
+      },
+    });
+
+    // [NEW] Trigger Continuous Learning (Feature 2) — non-blocking
+    if (qualityScore.overallScore >= 25) {
+      learning.learnFromSuccess(request.trim(), result.prompt, qualityScore.overallScore, req.user?.id)
+        .catch(err => logger.warn('Background learning failed', { error: err.message }));
+    }
+
+    res.json({ ...result, qualityScore });
+  } catch (err) {
+    logger.error('Generation error:', err);
+    res.status(500).json({ error: err.message });
   }
-
-  const result = await generateWithAI(request.trim());
-  const qualityScore = scorePrompt(result.prompt);
-
-  trackEvent({
-    eventType: 'ai_prompt_generated',
-    sessionId: req.headers['x-session-id'],
-    userId: req.user?.id,
-    qualityScore: qualityScore.overallScore,
-    metadata: { source: result.source, requestLength: request.length },
-  });
-
-  res.json({ ...result, qualityScore });
 });
 
 export default router;

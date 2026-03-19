@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
 import type { Template, QualityScore } from '../types';
+import { ArenaModal } from './ArenaModal';
 
 interface GeneratePanelProps {
     templates: Template[];
@@ -21,6 +22,11 @@ export function GeneratePanel({ templates, onGenerate, onLoading }: GeneratePane
     const [input, setInput] = useState('');
     const [activeCategory, setActiveCategory] = useState('all');
     const [isLoading, setIsLoading] = useState(false);
+    const [isOptimizing, setIsOptimizing] = useState(false);
+    const [isArenaLoading, setIsArenaLoading] = useState(false);
+    const [arenaResults, setArenaResults] = useState<{ results: any[]; jury: any } | null>(null);
+    const [isArenaModalOpen, setIsArenaModalOpen] = useState(false);
+    const [securityStatus, setSecurityStatus] = useState<{ isSafe: boolean; riskLevel: string } | null>(null);
 
     const handleGenerate = async () => {
         if (!input.trim() || input.trim().length < 5) return;
@@ -31,10 +37,40 @@ export function GeneratePanel({ templates, onGenerate, onLoading }: GeneratePane
         try {
             const data = await api.ai.generate(input);
             onGenerate(data);
+            if (data.security) setSecurityStatus(data.security);
         } catch (err) {
             console.error('Generation failed:', err);
         } finally {
             setIsLoading(false);
+            onLoading(false);
+        }
+    };
+
+    const handleOptimize = async () => {
+        if (!input.trim() || input.trim().length < 5) return;
+        setIsOptimizing(true);
+        try {
+            const data = await api.ai.optimize(input);
+            setInput(data.optimized);
+        } catch (err) {
+            console.error('Optimization failed:', err);
+        } finally {
+            setIsOptimizing(false);
+        }
+    };
+
+    const handleArena = async () => {
+        if (!input.trim() || input.trim().length < 5) return;
+        setIsArenaLoading(true);
+        onLoading(true);
+        try {
+            const data = await api.ai.arena(input);
+            setArenaResults(data);
+            setIsArenaModalOpen(true);
+        } catch (err) {
+            console.error('Arena failed:', err);
+        } finally {
+            setIsArenaLoading(false);
             onLoading(false);
         }
     };
@@ -72,27 +108,50 @@ export function GeneratePanel({ templates, onGenerate, onLoading }: GeneratePane
                     <span className="text-xs text-white/30">
                         {input.length > 0 ? `${input.length} chars` : 'Ctrl+Enter to generate'}
                     </span>
-                    <button
-                        onClick={handleGenerate}
-                        disabled={isLoading || input.trim().length < 5}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--accent-purple)] hover:bg-[var(--button-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                    >
-                        {isLoading ? (
-                            <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.3" />
-                                <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                            </svg>
-                        ) : (
-                            <>
-                                <span>Generate</span>
-                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M22 2L11 13" />
-                                    <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleOptimize}
+                            disabled={isOptimizing || input.trim().length < 5}
+                            title="Optimize Prompt (Autonomous Optimizer)"
+                            className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 flex items-center gap-1"
+                        >
+                            {isOptimizing ? '✨...' : '✨'}
+                        </button>
+                        <button
+                            onClick={handleArena}
+                            disabled={isArenaLoading || input.trim().length < 5}
+                            title="Model Arena (Fleet Orchestration)"
+                            className="px-3 py-2 rounded-lg text-xs font-medium text-white/70 bg-white/5 hover:bg-white/10 disabled:opacity-30"
+                        >
+                            {isArenaLoading ? '⚔️...' : '⚔️ Arena'}
+                        </button>
+                        <button
+                            onClick={handleGenerate}
+                            disabled={isLoading || input.trim().length < 5}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--accent-purple)] hover:bg-[var(--button-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                            {isLoading ? (
+                                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.3" />
+                                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
                                 </svg>
-                            </>
-                        )}
-                    </button>
+                            ) : (
+                                <>
+                                    <span>Generate</span>
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M22 2L11 13" />
+                                        <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+                                    </svg>
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
+                {securityStatus && (
+                    <div className={`mt-2 text-[10px] px-2 py-0.5 rounded-full inline-block ${securityStatus.riskLevel === 'low' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                        🛡️ Security Shield: {securityStatus.riskLevel.toUpperCase()} RISK
+                    </div>
+                )}
             </div>
 
             {/* Category Pills */}
@@ -127,6 +186,16 @@ export function GeneratePanel({ templates, onGenerate, onLoading }: GeneratePane
                     ))}
                 </div>
             </div>
+            {/* Arena Modal */}
+            {arenaResults && (
+                <ArenaModal
+                    isOpen={isArenaModalOpen}
+                    onClose={() => setIsArenaModalOpen(false)}
+                    results={arenaResults.results}
+                    jury={arenaResults.jury}
+                    prompt={input}
+                />
+            )}
         </div>
     );
 }

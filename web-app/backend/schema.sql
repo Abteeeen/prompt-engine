@@ -67,3 +67,28 @@ CREATE INDEX IF NOT EXISTS idx_user_prompts_created_at   ON user_prompts(created
 CREATE INDEX IF NOT EXISTS idx_analytics_event_type      ON analytics_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_analytics_created_at      ON analytics_events(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analytics_session         ON analytics_events(session_id);
+
+-- [NEW] Learned Patterns (Feature 2)
+CREATE TABLE IF NOT EXISTS learned_patterns (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID REFERENCES users(id) ON DELETE CASCADE,
+  category      VARCHAR(100) NOT NULL, -- e.g., 'formatting', 'logic', 'tone'
+  pattern_text  TEXT NOT NULL,
+  confidence    FLOAT DEFAULT 0.0,    -- 0.0 to 1.0
+  metadata      JSONB DEFAULT '{}',
+  created_at    TIMESTAMP DEFAULT NOW()
+);
+
+-- [NEW] Multi-Model Arena Comparisons (Feature 4)
+CREATE TABLE IF NOT EXISTS arena_comparisons (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  prompt_text       TEXT NOT NULL,
+  results           JSONB NOT NULL,       -- array of { model, response, score }
+  winner_model      VARCHAR(50),
+  comparison_basis  TEXT,                 -- reasoning for picking the winner
+  created_at        TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_learned_patterns_user_id ON learned_patterns(user_id);
+CREATE INDEX IF NOT EXISTS idx_learned_patterns_category ON learned_patterns(category);
+CREATE INDEX IF NOT EXISTS idx_arena_comparisons_created_at ON arena_comparisons(created_at DESC);
