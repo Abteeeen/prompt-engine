@@ -80,14 +80,15 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     scene.add(water);
     waterRef.current = water;
 
-    // Stronger ambient and moonlight to bring back colors
-    const ambient = new THREE.AmbientLight(0xffffff, isDay ? 1.5 : 0.8); scene.add(ambient);
-    const sun = new THREE.DirectionalLight(0xddeeff, isDay ? 2.5 : 1.5); sun.position.set(50, 100, 50); scene.add(sun);
-
-    // Front-Left Directional Light to make the island and ship colors pop
-    const frontLeftLight = new THREE.DirectionalLight(0xfffaee, 2.0);
-    frontLeftLight.position.set(-100, 100, 100);
-    scene.add(frontLeftLight);
+    // Strict directional sun & ambient lighting to match custom shader calculations
+    const ambient = new THREE.AmbientLight(0x7aa8b0, isDay ? 0.9 : 0.4); 
+    scene.add(ambient);
+    
+    const sun = new THREE.DirectionalLight(0xffffff, isDay ? 2.0 : 1.0); 
+    sun.position.set(500, 1000, 200); 
+    sun.castShadow = true;
+    sun.shadow.camera.far = 2000;
+    scene.add(sun);
 
     const gltfLoader = new GLTFLoader();
     console.log('Starting ship load...');
@@ -219,7 +220,7 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
         // Computes Sunlit Cream, Golden Cliffs, and Teal Shadows dynamically
         const skullShaderMaterial = new THREE.ShaderMaterial({
           uniforms: {
-            sunDirection: { value: new THREE.Vector3(1.0, 2.0, 0.5).normalize() }, // Hardcoded internal sun for skull shading only
+            sunDirection: { value: new THREE.Vector3(0.5, 1.0, 0.2).normalize() },
             creamColor: { value: new THREE.Color('#D4C9A0') },
             goldColor: { value: new THREE.Color('#F0B030') },
             tealShadow: { value: new THREE.Color('#7AA8B0') }
@@ -307,6 +308,17 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
             downTooth.position.set(i * 0.8, 0.0, 4.0);
             island.add(downTooth);
         }
+
+        // Thick Black Anime Outline (Inverted Hull)
+        meshesToOutline.forEach(mesh => {
+          const outlineMat = new THREE.MeshBasicMaterial({ 
+             color: 0x000000, 
+             side: THREE.BackSide 
+          });
+          const outlineMesh = new THREE.Mesh(mesh.geometry, outlineMat);
+          outlineMesh.scale.multiplyScalar(1.03); 
+          mesh.add(outlineMesh);
+        });
 
         // ==========================================================
         // PROCEDURALLY GENERATE ALL EXTRA SCENE VEGETATION & TERRAIN
