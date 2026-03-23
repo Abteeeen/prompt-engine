@@ -53,9 +53,14 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
     // Dark navy fog matching the water color so the distance fades naturally
     scene.fog = new THREE.FogExp2(0x001e4d, 0.0015); 
 
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 20000);
-    // Position camera to see the ship's deck and the island clearly in the background
-    camera.position.set(20, 30, 60); 
+    const isMobile = window.innerWidth <= 768;
+    const camera = new THREE.PerspectiveCamera(isMobile ? 65 : 45, window.innerWidth / window.innerHeight, 0.1, 20000);
+    // Position camera closer and higher on mobile to keep the ship in frame
+    if (isMobile) {
+      camera.position.set(30, 45, 80); 
+    } else {
+      camera.position.set(20, 30, 60); 
+    }
     camera.lookAt(0, 5, -20);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -68,12 +73,16 @@ export default function ShipScene({ onPosterToggle, activePosterId }: ShipSceneP
 
     const waterGeometry = new THREE.PlaneGeometry(10000, 10000);
     const water = new Water(waterGeometry, {
-        textureWidth: 512, textureHeight: 512,
-        waterNormals: new THREE.TextureLoader().load('/textures/waternormals.jpg', (t) => t.wrapS = t.wrapT = THREE.RepeatWrapping),
+        textureWidth: isMobile ? 256 : 512, 
+        textureHeight: isMobile ? 256 : 512,
+        waterNormals: new THREE.TextureLoader().load('/textures/waternormals.jpg', (t) => {
+            t.wrapS = t.wrapT = THREE.RepeatWrapping;
+            console.log('Water normals loaded');
+        }),
         sunDirection: new THREE.Vector3(1, 1, 1).normalize(),
         sunColor: 0x77ccff, // Cool moonlight
         waterColor: 0x001e4d, // Brighter blue tinted water
-        distortionScale: 3.7
+        distortionScale: isMobile ? 2.0 : 3.7
     });
     water.rotation.x = -Math.PI / 2;
     water.position.y = -5;

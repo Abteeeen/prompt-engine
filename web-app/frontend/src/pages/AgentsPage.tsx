@@ -137,6 +137,18 @@ export default function AgentsPage() {
                </div>
             </div>
           </div>
+
+          {/* ABSOLUTE CLOSE BUTTON - High Visibility for Mobile/Desktop */}
+          <button 
+            onClick={handleDismiss}
+            className="fixed top-6 right-6 z-[60] p-4 text-white/40 hover:text-white transition-all hover:scale-110 active:scale-90 glass rounded-full border border-white/10 group bg-black/20 pointer-events-auto"
+            aria-label="Close Poster"
+          >
+            <svg viewBox="0 0 24 24" className="w-8 h-8 stroke-current fill-none transition-transform group-hover:rotate-90" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
       )}
 
