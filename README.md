@@ -4,10 +4,10 @@
 
 ---
 
-## 🎯 THE PROBLEM
+## 🎯 THE PROBLEMs
 
 Prompt engineering is currently:
-- ❌ Trial-and-error
+- ❌ Trial-and-error method 
 - ❌ Inconsistent (different prompts work for different people)
 - ❌ Undocumented (no clear best practices)
 - ❌ Hard to improve (how do you know if a change helps?)
