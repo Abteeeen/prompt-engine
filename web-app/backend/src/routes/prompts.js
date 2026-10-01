@@ -154,8 +154,11 @@ router.post('/:id/rate', requireAuth, async (req, res) => {
 // POST /api/prompts/seed — used by n8n to ingest new high-quality prompts
 router.post('/seed', async (req, res) => {
   const seedKey = req.headers['x-seed-key'];
-  const masterKey = process.env.SEED_API_KEY || 'development_seed_key_123';
-  
+  const masterKey = process.env.SEED_API_KEY;
+
+  if (!masterKey) {
+    return res.status(503).json({ error: 'Seeding is disabled: SEED_API_KEY is not configured.' });
+  }
   if (!seedKey || seedKey !== masterKey) {
     return res.status(401).json({ error: 'Unauthorized seed attempt.' });
   }

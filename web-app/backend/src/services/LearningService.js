@@ -1,8 +1,10 @@
 import logger from '../utils/logger.js';
 import { createClient } from '@supabase/supabase-js';
-import { callAIResilient } from './AIService.js'; // need to export this or move to utils
+import { chatResilient } from './llm/providers.js';
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY)
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
+  : null;
 
 /**
  * LearningService implements the "Continuous Learning" (Feature 2).
@@ -18,6 +20,7 @@ class LearningService {
    */
   async learnFromSuccess(userIdea, perfectPrompt, qualityScore, userId = null) {
     if (qualityScore < 25) return; // Only learn from high-quality results
+    if (!supabase) return;         // Learning store not configured
 
     logger.info('Learning from successful generation', { qualityScore });
 
@@ -32,8 +35,8 @@ Identify 1-2 reusable "Patterns" or "Instincts" that made this prompt effective.
 Focus on: Specificity, Role Definition, Structure, or Constraint handling.
 Output: A JSON array of { category: string, pattern_text: string, confidence: float }.`;
 
-      const analysis = await callAIResilient(observerPrompt, 'Extract patterns.', 'openrouter', 'anthropic/claude-3-haiku:free');
-      const content = analysis.choices?.[0]?.message?.content?.trim();
+      const analysis = await chatResilient(observerPrompt, 'Extract patterns.', { role: 'LEARNER' });
+      const content = analysis.text;
       
       // Parse JSON from content (wrapped in markdown or raw)
       const jsonMatch = content.match(/\[.*\]/s);
@@ -61,6 +64,7 @@ Output: A JSON array of { category: string, pattern_text: string, confidence: fl
    * Retrieves relevant patterns for a new prompt request.
    */
   async getRelevantContext(userIdea) {
+    if (!supabase) return [];
     // In a full implementation, we'd use vector search here.
     // For now, return the most recent high-confidence patterns.
     const { data } = await supabase

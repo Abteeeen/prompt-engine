@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { pipeline } from '@xenova/transformers';
 
 import security from './SecurityService.js';
+import { chat, chatResilient, configuredProviders, arenaModels } from './llm/providers.js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
@@ -13,13 +14,7 @@ if (supabaseUrl && supabaseKey) {
 }
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 
-// ── Fleet Orchestration Models (Feature 4) ──────────────────────────────────
-const ARENA_MODELS = [
-  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 (Groq)', provider: 'groq' },
-  { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 (OpenRouter)', provider: 'openrouter' },
-  { id: 'google/gemini-pro-1.5-exp', name: 'Gemini 1.5 Pro', provider: 'openrouter' },
-  { id: 'mistralai/mixtral-8x7b-instruct:free', name: 'Mixtral 8x7B', provider: 'openrouter' }
-];
+// Arena models come from ARENA_MODELS env (see llm/providers.js); default is one model per configured provider.
 
 let extractor = null;
 async function getExtractor() {
@@ -31,6 +26,7 @@ async function getExtractor() {
 
 // Level 3: Tavily Search
 async function tavilySearch(query) {
+  if (!TAVILY_API_KEY) return '';
   try {
     const res = await fetch('https://api.tavily.com/search', {
       method: 'POST',
@@ -57,8 +53,6 @@ async function getSupabaseContext(userRequest) {
   return '';
 }
 
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL = 'llama-3.3-70b-versatile';
 
 // ── Phase 1 Research: 45 Core Principles (injected into every call) ──────────
 const RESEARCH_PRINCIPLES = `
@@ -698,57 +692,13 @@ Format: [style], [subject], [setting], [mood], [technical details]
 
 Example: Warm cinematic photo of a happy family of 4 sitting on a picnic blanket in a sunny park, golden hour lighting, shot on 85mm lens, shallow depth of field, authentic candid moment`;
 
-// ── AI API call helper (Groq & OpenRouter) ─────────────────────────────────────────────────────
-// systemPrompt = persona/role/rules for this agent
-// userContent = the actual request message sent to this agent
-async function callAI(systemPrompt, userContent, provider = 'groq', modelOverride = null) {
-  let url = GROQ_URL;
-  let apiKey = process.env.GROQ_API_KEY;
-  let model = modelOverride || MODEL;
-
-  if (provider === 'openrouter') {
-    url = 'https://openrouter.ai/api/v1/chat/completions';
-    apiKey = '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';
-  }
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      ...(provider === 'openrouter' && {
-        'HTTP-Referer': 'https://promptengine.com',
-        'X-Title': 'Prompt Engine',
-      })
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userContent },
-      ],
-      temperature: 0.75,
-      max_tokens: 1500,
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `${provider} API error ${res.status}`);
-  }
-
-  return res.json();
-}
-
-// ── Resilient AI call — tries primary provider, falls back to Groq ─────────
-export async function callAIResilient(systemPrompt, userContent, provider = 'groq', modelOverride = null) {
-  try {
-    return await callAI(systemPrompt, userContent, provider, modelOverride);
-  } catch (err) {
-    logger.warn(`${provider} call failed, falling back to Groq`, { error: err.message });
-    // If primary provider failed, retry on Groq with main model
-    return await callAI(systemPrompt, userContent, 'groq', MODEL);
-  }
+// ── LLM calls ─────────────────────────────────────────────────────────────────
+// All provider URLs, keys and model ids live in src/services/llm/providers.js
+// and are read from environment variables. `callAIResilient` is kept as a thin
+// compatibility wrapper that returns the completion text.
+export async function callAIResilient(systemPrompt, userContent, role = 'DEFAULT') {
+  const result = await chatResilient(systemPrompt, userContent, { role });
+  return result.text;
 }
 
 // ── Main AI generation function ───────────────────────────────────────────────
@@ -759,17 +709,17 @@ export async function generateWithAI(userRequest) {
     throw new Error(`Security Risk Detected: ${securityResult.findings.join(', ')}`);
   }
 
-  const apiKey = process.env.GROQ_API_KEY;
-
   // Step 1: Detect image request and domain FIRST before any async work
   const isImageRequest = /photo|image|picture|illustration|draw|render|visual|portrait|artwork|family photo/i.test(userRequest);
   const detectedDomain = isImageRequest ? null : detectDomain(userRequest);
   const detectedType = isImageRequest ? 'image' : detectPromptType(userRequest);
 
-  if (!apiKey) {
-    logger.warn('GROQ_API_KEY not set — using emergency fallback');
+  if (configuredProviders().length === 0) {
+    logger.error('No LLM provider configured (GROQ_API_KEY / HF_TOKEN / OPENROUTER_API_KEY / LLM_BASE_URL) — returning static fallback');
     return emergencyFallback(userRequest, isImageRequest);
   }
+
+  const modelsUsed = [];
 
   // Step 2: Context gathering (optional enrichment — failures are silent)
   let webContext = '';
@@ -799,8 +749,9 @@ Your ONLY job: analyze a user request and write a 3-point strategy for crafting 
 Do NOT write the prompt. Output ONLY the 3-point strategy.`;
 
     const researcherInput = `Analyze this request:\n"${augmentedRequest}"`;
-    const researcherData = await callAIResilient(researcherSystemPrompt, researcherInput, 'openrouter', 'meta-llama/llama-3.3-70b-instruct:free');
-    strategy = researcherData.choices?.[0]?.message?.content?.trim() || '';
+    const researcher = await chatResilient(researcherSystemPrompt, researcherInput, { role: 'RESEARCHER' });
+    strategy = researcher.text;
+    modelsUsed.push(`${researcher.provider}:${researcher.model}`);
     logger.debug('Researcher Agent completed', { strategyLength: strategy.length });
   } catch (err) {
     logger.warn('Researcher Agent failed, continuing without strategy', { error: err.message });
@@ -822,8 +773,9 @@ Do NOT write the prompt. Output ONLY the 3-point strategy.`;
       drafterUserContent += `\n\nAPPLY:\n1. Define AUDIENCE explicitly\n2. Set CONSTRAINTS (budget, length, format)\n3. Use COSTAR or RISEN framework\n4. Include edge cases\n5. End with SELF-REVIEW instruction\n\nWrite ONLY the final AI prompt:`;
     }
 
-    const draftData = await callAIResilient(drafterSystemPrompt, drafterUserContent, 'openrouter', 'google/gemini-2.0-flash-exp:free');
-    draftText = draftData.choices?.[0]?.message?.content?.trim();
+    const draft = await chatResilient(drafterSystemPrompt, drafterUserContent, { role: 'DRAFTER' });
+    draftText = draft.text;
+    modelsUsed.push(`${draft.provider}:${draft.model}`);
     logger.debug('Drafter Agent completed', { draftLength: draftText?.length });
   } catch (err) {
     logger.warn('Drafter Agent failed', { error: err.message });
@@ -831,14 +783,15 @@ Do NOT write the prompt. Output ONLY the 3-point strategy.`;
 
   // If Drafter completely failed, use Groq directly as emergency drafter
   if (!draftText || draftText.length < 50) {
-    logger.warn('Drafter failed — running emergency Groq drafter');
+    logger.warn('Drafter failed — running emergency single-shot drafter');
     try {
       const emergencySystemPrompt = isImageRequest ? IMAGE_SYSTEM_PROMPT : buildSystemPrompt(detectedDomain, detectedType);
       const emergencyInput = isImageRequest
         ? `Create a detailed image generation prompt for: "${userRequest}"`
         : `Write a complete expert AI prompt for: "${userRequest}". Use ROLE/TASK/REQUIREMENTS/CONSTRAINTS/OUTPUT FORMAT structure. Be highly detailed and specific.`;
-      const emergencyData = await callAI(emergencySystemPrompt, emergencyInput, 'groq', MODEL);
-      draftText = emergencyData.choices?.[0]?.message?.content?.trim();
+      const emergency = await chatResilient(emergencySystemPrompt, emergencyInput, { role: 'DEFAULT' });
+      draftText = emergency.text;
+      modelsUsed.push(`${emergency.provider}:${emergency.model}`);
     } catch (err) {
       logger.error('Emergency Groq drafter also failed', { error: err.message });
       return emergencyFallback(userRequest, isImageRequest);
@@ -856,9 +809,9 @@ If < 9/10 → rewrite it to be perfect.
 OUTPUT: ONLY the final prompt. No preamble, no scores, no explanations.`;
 
       const criticInput = `Review and improve if needed:\n\n${draftText}`;
-      const criticData = await callAIResilient(criticSystemPrompt, criticInput, 'groq', MODEL);
-      const criticText = criticData.choices?.[0]?.message?.content?.trim();
-      if (criticText && criticText.length > 80) finalText = criticText;
+      const critic = await chatResilient(criticSystemPrompt, criticInput, { role: 'CRITIC' });
+      if (critic.text && critic.text.length > 80) finalText = critic.text;
+      modelsUsed.push(`${critic.provider}:${critic.model}`);
       logger.debug('Critic Agent completed');
     } catch (err) {
       logger.warn('Critic Agent failed, using draft as-is', { error: err.message });
@@ -867,10 +820,12 @@ OUTPUT: ONLY the final prompt. No preamble, no scores, no explanations.`;
 
   logger.debug('3-Agent pipeline complete', { domain: detectedDomain, type: detectedType, isImageRequest });
 
+  const last = modelsUsed[modelsUsed.length - 1] || 'unknown';
   return {
     prompt: finalText,
-    model: MODEL,
-    source: 'groq',
+    model: last.split(':').slice(1).join(':') || last,
+    source: last.split(':')[0],
+    pipeline: modelsUsed,
     domain: detectedDomain,
     detectedType: isImageRequest ? 'image' : detectedType,
     security: securityResult
@@ -879,25 +834,27 @@ OUTPUT: ONLY the final prompt. No preamble, no scores, no explanations.`;
 
 // ── [NEW] Multi-Model Arena (Feature 4) ──────────────────────────────────────
 export async function generateArenaResults(userRequest) {
-  logger.info('Starting Multi-Model Arena generation', { userRequest });
+  logger.info('Starting Multi-Model Arena generation', { requestLength: userRequest.length });
 
-  const promises = ARENA_MODELS.map(model => 
-    callAIResilient(
-      buildSystemPrompt(detectDomain(userRequest), detectPromptType(userRequest)),
-      userRequest,
-      model.provider,
-      model.id
-    ).then(res => ({
-      modelId: model.id,
-      modelName: model.name,
-      response: res.choices?.[0]?.message?.content?.trim(),
-      status: 'success'
-    })).catch(err => ({
-      modelId: model.id,
-      modelName: model.name,
-      error: err.message,
-      status: 'error'
-    }))
+  const models = arenaModels();
+  if (models.length === 0) throw new Error('No LLM provider configured for the arena.');
+
+  const systemPrompt = buildSystemPrompt(detectDomain(userRequest), detectPromptType(userRequest));
+  const promises = models.map(m =>
+    chat(systemPrompt, userRequest, { provider: m.provider, model: m.model })
+      .then(res => ({
+        modelId: m.model,
+        modelName: m.name,
+        provider: m.provider,
+        response: res.text,
+        status: 'success'
+      })).catch(err => ({
+        modelId: m.model,
+        modelName: m.name,
+        provider: m.provider,
+        error: err.message,
+        status: 'error'
+      }))
   );
 
   const results = await Promise.all(promises);
@@ -916,8 +873,8 @@ Output ONLY the name of the winning model and a 1-sentence reasoning.`;
   let juryResult = { winner: 'Unknown', reasoning: 'No valid results to judge' };
   if (judgeInput) {
     try {
-      const juryData = await callAIResilient(judgePrompt, judgeInput, 'groq', MODEL);
-      const juryText = juryData.choices?.[0]?.message?.content?.trim() || '';
+      const jury = await chatResilient(judgePrompt, judgeInput, { role: 'JURY' });
+      const juryText = jury.text;
       juryResult = {
         winner: juryText.split('\n')[0],
         reasoning: juryText.split('\n').slice(1).join(' ') || juryText
@@ -943,14 +900,16 @@ Your goal is to take a user's raw idea and iterate on it to make it "perfect" us
 3. Critique and refine.
 Output ONLY the final highly-optimized prompt.`;
 
-  const result = await callAIResilient(optimizerSystemPrompt, userRequest, 'openrouter', 'meta-llama/llama-3.1-405b-instruct:free');
+  const result = await chatResilient(optimizerSystemPrompt, userRequest, { role: 'OPTIMIZER' });
   return {
     original: userRequest,
-    optimized: result.choices?.[0]?.message?.content?.trim()
+    optimized: result.text,
+    model: result.model,
+    provider: result.provider
   };
 }
 
-// ── Emergency fallback when even Groq fails ────────────────────────────────────
+// ── Emergency fallback when no provider is configured or every provider failed ────────────────────────────────────
 function emergencyFallback(userRequest, isImageRequest = false) {
   if (isImageRequest) {
     return {

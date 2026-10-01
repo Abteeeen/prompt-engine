@@ -1,7 +1,12 @@
+import 'dotenv/config';
 import pkg from 'pg';
 const { Client } = pkg;
 
-const connectionString = 'postgresql://postgres.imxikcpfxghmujthaply:Nishaanil@10@aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres';
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error('DATABASE_URL is not set. Add it to web-app/backend/.env or export it before running this script.');
+  process.exit(1);
+}
 
 const client = new Client({
   connectionString,
