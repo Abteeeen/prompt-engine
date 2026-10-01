@@ -25,7 +25,7 @@ export function QualityScore({ data }: { data: QualityScoreType }) {
         <div className="flex flex-wrap gap-x-4 gap-y-2">
           {Object.entries(data.breakdown || {}).map(([key, score]) => (
             <span key={key} className="text-xs text-white/60 capitalize">
-              {key}: <span className="text-white/90">{score}/10</span>
+              {key}: <span className="text-white/90">{score}/3</span>
             </span>
           ))}
         </div>

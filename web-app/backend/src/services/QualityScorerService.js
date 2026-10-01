@@ -130,8 +130,35 @@ function getSuggestion(breakdown) {
   return suggestions[lowest[0]] || 'Looks great — try adding more examples for even better results.';
 }
 
+/** Dimension metadata (key, label, description) for rubric-based scorers. */
+export const DIMENSION_META = SCORING_DIMENSIONS.map(({ key, label, description }) => ({ key, label, description }));
+
 /**
- * Score a prompt text on the 30-point scale.
+ * Build a quality-score object (same shape as scorePrompt) from a breakdown
+ * produced elsewhere, e.g. the LLM critic's rubric.
+ */
+export function buildQualityScore(breakdown, { suggestion, method = 'llm-rubric' } = {}) {
+  const clean = {};
+  let total = 0;
+  for (const d of SCORING_DIMENSIONS) {
+    const v = Number(breakdown?.[d.key]);
+    clean[d.key] = Number.isFinite(v) ? Math.max(0, Math.min(3, Math.round(v))) : 0;
+    total += clean[d.key];
+  }
+  return {
+    overallScore: total,
+    breakdown: clean,
+    rating: getRating(total),
+    suggestion: suggestion || getSuggestion(clean),
+    method,
+    dimensions: SCORING_DIMENSIONS.map((d) => ({
+      key: d.key, label: d.label, description: d.description, score: clean[d.key], maxScore: 3,
+    })),
+  };
+}
+
+/**
+ * Score a prompt text on the 30-point scale (regex heuristics).
  */
 export function scorePrompt(promptText) {
   const text = promptText || '';
@@ -151,6 +178,7 @@ export function scorePrompt(promptText) {
     breakdown,                              // { clarity: 3, completeness: 2, ... }
     rating: getRating(total),
     suggestion: getSuggestion(breakdown),
+    method: 'heuristic',
     dimensions: SCORING_DIMENSIONS.map((d) => ({
       key: d.key,
       label: d.label,

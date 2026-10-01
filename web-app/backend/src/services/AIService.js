@@ -5,6 +5,7 @@ import { pipeline } from '@xenova/transformers';
 
 import security from './SecurityService.js';
 import { chat, chatResilient, configuredProviders, arenaModels } from './llm/providers.js';
+import { DIMENSION_META, buildQualityScore } from './QualityScorerService.js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
@@ -701,18 +702,217 @@ export async function callAIResilient(systemPrompt, userContent, role = 'DEFAULT
   return result.text;
 }
 
+// ── JSON helpers ──────────────────────────────────────────────────────────────
+function extractJson(text) {
+  if (!text) return null;
+  let t = String(text).trim();
+  t = t.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '');
+  const start = t.indexOf('{');
+  const end = t.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) return null;
+  try { return JSON.parse(t.slice(start, end + 1)); } catch { return null; }
+}
+
+const asStringList = (v, max = 5) =>
+  (Array.isArray(v) ? v : (typeof v === 'string' && v ? [v] : []))
+    .map(x => (typeof x === 'string' ? x : JSON.stringify(x)).trim())
+    .filter(Boolean)
+    .slice(0, max);
+
+const QUALITY_TARGET = parseInt(process.env.LLM_QUALITY_TARGET || '27', 10);      // out of 30
+const MAX_REFINEMENTS = parseInt(process.env.LLM_MAX_REFINEMENTS || '2', 10);     // critique passes
+
+// ── Stage 1: ANALYST — structured understanding of the request ───────────────
+async function analyzeRequest(userRequest, webContext = '') {
+  const templates = loadTemplates();
+  const domainIds = templates.map(t => `${t.id} (${t.name})`).join(', ');
+  const typeKeys = Object.keys(TYPE_SYSTEM_PROMPTS).filter(k => k !== 'auto').join(', ');
+
+  const system = `You are a senior prompt-engineering strategist. You never write the final prompt. You analyze a user's raw request and return a precise plan for a prompt engineer to follow.
+
+Return ONLY a JSON object with exactly these keys:
+{
+  "domain": one of [${domainIds}] or null if none fits,
+  "promptType": one of [${typeKeys}, auto],
+  "targetTool": the AI tool the final prompt is for (e.g. "ChatGPT/Claude chat", "Midjourney", "coding agent", "voice assistant"),
+  "audience": who will consume the OUTPUT of the final prompt,
+  "goal": the real outcome the user wants, in one sentence,
+  "deliverable": the concrete artifact the AI must produce (format, length, structure),
+  "successCriteria": [2-4 measurable statements that define a great result],
+  "constraints": [explicit or implied limits: tone, length, must-include, must-avoid, compliance],
+  "missingInfo": [up to 4 short questions whose answers would materially change the prompt],
+  "assumptions": [for each missing item, the sensible default the prompt will assume, phrased as a fact],
+  "pitfalls": [2-3 ways a naive prompt for this request typically fails],
+  "framework": one of ["COSTAR", "RISEN", "ROLE-TASK-FORMAT", "CHAIN-OF-THOUGHT", "FEW-SHOT", "IMAGE-SPEC"],
+  "complexity": one of ["simple", "moderate", "complex"],
+  "strategy": 3-5 sentences telling the prompt engineer exactly how to structure the prompt and what to emphasize
+}
+Be concrete. Never leave arrays empty when a reasonable answer exists. No markdown, no commentary, JSON only.`;
+
+  let user = `USER REQUEST:\n"""${userRequest}"""`;
+  if (webContext) user += `\n\nLIVE WEB CONTEXT (may be useful for domain facts):\n${webContext.slice(0, 1500)}`;
+
+  const fallback = () => ({
+    domain: detectDomain(userRequest),
+    promptType: detectPromptType(userRequest),
+    targetTool: 'ChatGPT/Claude chat',
+    audience: '', goal: '', deliverable: '',
+    successCriteria: [], constraints: [], missingInfo: [], assumptions: [], pitfalls: [],
+    framework: 'COSTAR', complexity: 'moderate', strategy: '',
+    method: 'keyword-fallback',
+  });
+
+  try {
+    const res = await chatResilient(system, user, { role: 'RESEARCHER', temperature: 0.2, maxTokens: 900 });
+    const json = extractJson(res.text);
+    if (!json) throw new Error('analysis was not valid JSON');
+
+    const validDomain = templates.some(t => t.id === json.domain) ? json.domain : detectDomain(userRequest);
+    const validType = TYPE_SYSTEM_PROMPTS[json.promptType] ? json.promptType : detectPromptType(userRequest);
+
+    return {
+      domain: validDomain,
+      promptType: validType,
+      targetTool: typeof json.targetTool === 'string' ? json.targetTool : 'ChatGPT/Claude chat',
+      audience: typeof json.audience === 'string' ? json.audience : '',
+      goal: typeof json.goal === 'string' ? json.goal : '',
+      deliverable: typeof json.deliverable === 'string' ? json.deliverable : '',
+      successCriteria: asStringList(json.successCriteria, 4),
+      constraints: asStringList(json.constraints, 6),
+      missingInfo: asStringList(json.missingInfo, 4),
+      assumptions: asStringList(json.assumptions, 4),
+      pitfalls: asStringList(json.pitfalls, 3),
+      framework: typeof json.framework === 'string' ? json.framework : 'COSTAR',
+      complexity: ['simple', 'moderate', 'complex'].includes(json.complexity) ? json.complexity : 'moderate',
+      strategy: typeof json.strategy === 'string' ? json.strategy : '',
+      method: 'llm',
+      model: `${res.provider}:${res.model}`,
+    };
+  } catch (err) {
+    logger.warn('Analyst stage failed, using keyword detection', { error: err.message });
+    return fallback();
+  }
+}
+
+// ── Stage 2: DRAFTER — writes the prompt from the analysis ───────────────────
+function buildDrafterInput(userRequest, analysis, ragContext = '') {
+  const lines = [`Write a complete, expert-level AI prompt for this request:\n"""${userRequest}"""`];
+
+  const brief = [];
+  if (analysis.targetTool) brief.push(`Target tool: ${analysis.targetTool}`);
+  if (analysis.audience) brief.push(`Audience of the output: ${analysis.audience}`);
+  if (analysis.goal) brief.push(`Real goal: ${analysis.goal}`);
+  if (analysis.deliverable) brief.push(`Deliverable: ${analysis.deliverable}`);
+  if (analysis.successCriteria.length) brief.push(`Success criteria:\n- ${analysis.successCriteria.join('\n- ')}`);
+  if (analysis.constraints.length) brief.push(`Constraints:\n- ${analysis.constraints.join('\n- ')}`);
+  if (analysis.assumptions.length) brief.push(`Assumed defaults (state these explicitly inside the prompt so the user can change them):\n- ${analysis.assumptions.join('\n- ')}`);
+  if (analysis.pitfalls.length) brief.push(`Avoid these common failures:\n- ${analysis.pitfalls.join('\n- ')}`);
+  if (analysis.framework) brief.push(`Framework to apply: ${analysis.framework}`);
+  if (analysis.strategy) brief.push(`Strategy from the analyst: ${analysis.strategy}`);
+  if (brief.length) lines.push(`\nANALYST BRIEF:\n${brief.join('\n')}`);
+
+  if (ragContext) lines.push(`\nSUCCESSFUL EXAMPLE PROMPTS (structural inspiration only, do not copy content):\n${ragContext}`);
+
+  lines.push(`\nREQUIREMENTS FOR YOUR OUTPUT:
+1. Define the ROLE with real expertise, not a generic "expert".
+2. State the TASK and the exact DELIVERABLE (format, length, sections).
+3. Encode every constraint and success criterion as a checkable requirement.
+4. Include the assumed defaults as an explicit "Assumptions (edit if wrong)" line so the user can override them.
+5. Cover at least two edge cases relevant to this task.
+6. Use ${analysis.framework || 'COSTAR'} structure.
+7. End with a SELF-CHECK instruction.
+Write ONLY the final prompt. No preamble, no explanation.`);
+
+  return lines.join('\n');
+}
+
+// ── Stage 3: CRITIC — rubric score + rewrite ─────────────────────────────────
+async function critiquePrompt(promptText, userRequest, analysis = null) {
+  const dims = DIMENSION_META.map(d => `  "${d.key}": 0-3  (${d.label}: ${d.description})`).join(',\n');
+  const system = `You are a rigorous prompt QA reviewer. You grade AI prompts against a 10-dimension rubric and rewrite them when they fall short. You are strict: a 3 means nothing could be improved on that dimension.
+
+Return ONLY a JSON object:
+{
+  "scores": {
+${dims}
+  },
+  "issues": [specific, actionable problems you found, most important first, max 6],
+  "improvedPrompt": "the complete rewritten prompt that fixes EVERY issue, preserving the user's intent and all correct content. If the total score is 28 or more, return the original prompt verbatim."
+}
+Rules for improvedPrompt: it must be a finished prompt ready to paste into an AI tool, no preamble, no commentary, no markdown code fences. Keep the user's assumptions line if present. No fabricated facts.`;
+
+  let user = `ORIGINAL USER REQUEST:\n"""${userRequest}"""\n`;
+  if (analysis?.successCriteria?.length) user += `\nSUCCESS CRITERIA THE PROMPT MUST ENFORCE:\n- ${analysis.successCriteria.join('\n- ')}\n`;
+  if (analysis?.audience) user += `\nINTENDED AUDIENCE OF THE OUTPUT: ${analysis.audience}\n`;
+  user += `\nPROMPT TO REVIEW:\n"""\n${promptText}\n"""`;
+
+  const res = await chatResilient(system, user, { role: 'CRITIC', temperature: 0.2, maxTokens: 3000 });
+  const json = extractJson(res.text);
+  if (!json || typeof json.scores !== 'object') throw new Error('critic did not return valid JSON');
+
+  const breakdown = {};
+  for (const d of DIMENSION_META) {
+    const v = Number(json.scores[d.key]);
+    breakdown[d.key] = Number.isFinite(v) ? Math.max(0, Math.min(3, Math.round(v))) : 0;
+  }
+  const improved = typeof json.improvedPrompt === 'string' ? json.improvedPrompt.trim() : '';
+  return {
+    breakdown,
+    total: Object.values(breakdown).reduce((a, b) => a + b, 0),
+    issues: asStringList(json.issues, 6),
+    improvedPrompt: improved.length > 80 ? improved : null,
+    model: `${res.provider}:${res.model}`,
+  };
+}
+
+/**
+ * Critique → improve → re-critique until the rubric target is met or the
+ * refinement budget is spent. Returns the best prompt and its verified score.
+ */
+async function refineUntilGood(draftText, userRequest, analysis, modelsUsed) {
+  let current = draftText;
+  let lastRubric = null;
+  let refinements = 0;
+
+  for (let pass = 0; pass < Math.max(1, MAX_REFINEMENTS); pass++) {
+    let rubric;
+    try {
+      rubric = await critiquePrompt(current, userRequest, analysis);
+      modelsUsed.push(rubric.model);
+    } catch (err) {
+      logger.warn('Critic stage failed; keeping current draft', { pass, error: err.message });
+      break;
+    }
+    lastRubric = rubric;
+    logger.debug('Critic pass', { pass, total: rubric.total, issues: rubric.issues.length });
+
+    if (rubric.total >= QUALITY_TARGET) break;
+    if (!rubric.improvedPrompt || rubric.improvedPrompt === current) break;
+
+    current = rubric.improvedPrompt;
+    refinements++;
+  }
+
+  return { prompt: current, rubric: lastRubric, refinements };
+}
+
+function qualityFromRubric(rubric, method) {
+  if (!rubric) return null;
+  return buildQualityScore(rubric.breakdown, {
+    suggestion: rubric.issues[0] || 'Looks great — try adding a concrete example for even better results.',
+    method,
+  });
+}
+
 // ── Main AI generation function ───────────────────────────────────────────────
 export async function generateWithAI(userRequest) {
-  // Step 0: [NEW] Security Shield (Feature 5)
+  // Step 0: Security Shield
   const securityResult = await security.scanPrompt(userRequest);
   if (!securityResult.isSafe && securityResult.riskLevel === 'high') {
     throw new Error(`Security Risk Detected: ${securityResult.findings.join(', ')}`);
   }
 
-  // Step 1: Detect image request and domain FIRST before any async work
   const isImageRequest = /photo|image|picture|illustration|draw|render|visual|portrait|artwork|family photo/i.test(userRequest);
-  const detectedDomain = isImageRequest ? null : detectDomain(userRequest);
-  const detectedType = isImageRequest ? 'image' : detectPromptType(userRequest);
 
   if (configuredProviders().length === 0) {
     logger.error('No LLM provider configured (GROQ_API_KEY / HF_TOKEN / OPENROUTER_API_KEY / LLM_BASE_URL) — returning static fallback');
@@ -720,115 +920,92 @@ export async function generateWithAI(userRequest) {
   }
 
   const modelsUsed = [];
+  const startedAt = Date.now();
 
-  // Step 2: Context gathering (optional enrichment — failures are silent)
+  // Step 1: optional enrichment (failures are silent)
   let webContext = '';
   let ragContext = '';
   try {
-    const results = await Promise.allSettled([
-      tavilySearch(userRequest),
-      getSupabaseContext(userRequest)
-    ]);
+    const results = await Promise.allSettled([tavilySearch(userRequest), getSupabaseContext(userRequest)]);
     webContext = results[0].status === 'fulfilled' ? results[0].value : '';
     ragContext = results[1].status === 'fulfilled' ? results[1].value : '';
   } catch (err) {
     logger.warn('Context gathering failed silently', { error: err.message });
   }
 
-  let augmentedRequest = userRequest;
-  if (webContext) augmentedRequest += `\n\nLIVE WEB CONTEXT:\n${webContext}`;
-
-  // ─── Agent A: RESEARCHER ─────────────────────────────────────────────────────
-  let strategy = '';
-  try {
-    const researcherSystemPrompt = `You are a Strategic Prompt Engineer Researcher.
-Your ONLY job: analyze a user request and write a 3-point strategy for crafting the perfect AI prompt.
-1. Target Audience (who will use this prompt?)
-2. Key Constraints (what must the prompt include or avoid?)
-3. Best format/structure (ROLE/TASK/REQUIREMENTS, COSTAR, image prompt, etc.)
-Do NOT write the prompt. Output ONLY the 3-point strategy.`;
-
-    const researcherInput = `Analyze this request:\n"${augmentedRequest}"`;
-    const researcher = await chatResilient(researcherSystemPrompt, researcherInput, { role: 'RESEARCHER' });
-    strategy = researcher.text;
-    modelsUsed.push(`${researcher.provider}:${researcher.model}`);
-    logger.debug('Researcher Agent completed', { strategyLength: strategy.length });
-  } catch (err) {
-    logger.warn('Researcher Agent failed, continuing without strategy', { error: err.message });
+  // ── Image prompts: short single-shot path ─────────────────────────────────
+  if (isImageRequest) {
+    try {
+      const res = await chatResilient(IMAGE_SYSTEM_PROMPT, `Create a detailed image generation prompt for: "${userRequest}"`, { role: 'DRAFTER' });
+      modelsUsed.push(`${res.provider}:${res.model}`);
+      return {
+        prompt: res.text,
+        model: res.model,
+        source: res.provider,
+        pipeline: modelsUsed,
+        domain: null,
+        detectedType: 'image',
+        analysis: null,
+        refinements: 0,
+        security: securityResult,
+        latencyMs: Date.now() - startedAt,
+      };
+    } catch (err) {
+      logger.error('Image drafter failed', { error: err.message });
+      return emergencyFallback(userRequest, true);
+    }
   }
 
-  // ─── Agent B: DRAFTER ────────────────────────────────────────────────────────
+  // ── Stage 1: Analyst ──────────────────────────────────────────────────────
+  const analysis = await analyzeRequest(userRequest, webContext);
+  if (analysis.model) modelsUsed.push(analysis.model);
+
+  // ── Stage 2: Drafter ──────────────────────────────────────────────────────
   let draftText = '';
   try {
-    const drafterSystemPrompt = isImageRequest
-      ? IMAGE_SYSTEM_PROMPT
-      : buildSystemPrompt(detectedDomain, detectedType);
-
-    let drafterUserContent;
-    if (isImageRequest) {
-      drafterUserContent = `Create a detailed image generation prompt for: "${userRequest}"`;
-    } else {
-      drafterUserContent = `Write a complete, expert-level AI prompt for:\n"${userRequest}"\n\nRESEARCHER STRATEGY:\n${strategy || 'Apply COSTAR framework with full role, task, requirements, and constraints.'}`;
-      if (ragContext) drafterUserContent += `\n\nSUCCESSFUL EXAMPLE PROMPTS (use for structural inspiration only):\n${ragContext}`;
-      drafterUserContent += `\n\nAPPLY:\n1. Define AUDIENCE explicitly\n2. Set CONSTRAINTS (budget, length, format)\n3. Use COSTAR or RISEN framework\n4. Include edge cases\n5. End with SELF-REVIEW instruction\n\nWrite ONLY the final AI prompt:`;
-    }
-
-    const draft = await chatResilient(drafterSystemPrompt, drafterUserContent, { role: 'DRAFTER' });
+    const systemPrompt = buildSystemPrompt(analysis.domain, analysis.promptType);
+    const draft = await chatResilient(systemPrompt, buildDrafterInput(userRequest, analysis, ragContext), { role: 'DRAFTER', maxTokens: 2500 });
     draftText = draft.text;
     modelsUsed.push(`${draft.provider}:${draft.model}`);
-    logger.debug('Drafter Agent completed', { draftLength: draftText?.length });
   } catch (err) {
-    logger.warn('Drafter Agent failed', { error: err.message });
+    logger.error('Drafter stage failed', { error: err.message });
+    return emergencyFallback(userRequest, false);
   }
 
-  // If Drafter completely failed, use Groq directly as emergency drafter
-  if (!draftText || draftText.length < 50) {
-    logger.warn('Drafter failed — running emergency single-shot drafter');
-    try {
-      const emergencySystemPrompt = isImageRequest ? IMAGE_SYSTEM_PROMPT : buildSystemPrompt(detectedDomain, detectedType);
-      const emergencyInput = isImageRequest
-        ? `Create a detailed image generation prompt for: "${userRequest}"`
-        : `Write a complete expert AI prompt for: "${userRequest}". Use ROLE/TASK/REQUIREMENTS/CONSTRAINTS/OUTPUT FORMAT structure. Be highly detailed and specific.`;
-      const emergency = await chatResilient(emergencySystemPrompt, emergencyInput, { role: 'DEFAULT' });
-      draftText = emergency.text;
-      modelsUsed.push(`${emergency.provider}:${emergency.model}`);
-    } catch (err) {
-      logger.error('Emergency Groq drafter also failed', { error: err.message });
-      return emergencyFallback(userRequest, isImageRequest);
-    }
-  }
-
-  // ─── Agent C: CRITIC ─────────────────────────────────────────────────────────
-  let finalText = draftText;
-  if (!isImageRequest) { // Don't run critic on image prompts — they should be concise
-    try {
-      const criticSystemPrompt = `You are an expert AI Prompt Critic.
-Review the draft prompt. Score it on: Specificity, Audience, Constraints, Format, Edge Cases.
-If 9/10 or 10/10 → return it EXACTLY as-is.
-If < 9/10 → rewrite it to be perfect.
-OUTPUT: ONLY the final prompt. No preamble, no scores, no explanations.`;
-
-      const criticInput = `Review and improve if needed:\n\n${draftText}`;
-      const critic = await chatResilient(criticSystemPrompt, criticInput, { role: 'CRITIC' });
-      if (critic.text && critic.text.length > 80) finalText = critic.text;
-      modelsUsed.push(`${critic.provider}:${critic.model}`);
-      logger.debug('Critic Agent completed');
-    } catch (err) {
-      logger.warn('Critic Agent failed, using draft as-is', { error: err.message });
-    }
-  }
-
-  logger.debug('3-Agent pipeline complete', { domain: detectedDomain, type: detectedType, isImageRequest });
+  // ── Stage 3: Critic loop ──────────────────────────────────────────────────
+  const refined = await refineUntilGood(draftText, userRequest, analysis, modelsUsed);
+  const qualityScore = qualityFromRubric(refined.rubric, 'llm-rubric');
 
   const last = modelsUsed[modelsUsed.length - 1] || 'unknown';
+  logger.info('Prompt pipeline complete', {
+    domain: analysis.domain, type: analysis.promptType, analysis: analysis.method,
+    refinements: refined.refinements, score: qualityScore?.overallScore ?? null, ms: Date.now() - startedAt,
+  });
+
   return {
-    prompt: finalText,
+    prompt: refined.prompt,
     model: last.split(':').slice(1).join(':') || last,
     source: last.split(':')[0],
     pipeline: modelsUsed,
-    domain: detectedDomain,
-    detectedType: isImageRequest ? 'image' : detectedType,
-    security: securityResult
+    domain: analysis.domain,
+    detectedType: analysis.promptType,
+    analysis: {
+      method: analysis.method,
+      targetTool: analysis.targetTool,
+      audience: analysis.audience,
+      goal: analysis.goal,
+      deliverable: analysis.deliverable,
+      framework: analysis.framework,
+      complexity: analysis.complexity,
+      assumptions: analysis.assumptions,
+      clarifyingQuestions: analysis.missingInfo,
+      successCriteria: analysis.successCriteria,
+    },
+    qualityScore,                      // null when the critic could not run; the route falls back to heuristics
+    issues: refined.rubric?.issues || [],
+    refinements: refined.refinements,
+    security: securityResult,
+    latencyMs: Date.now() - startedAt,
   };
 }
 
@@ -891,21 +1068,37 @@ Output ONLY the name of the winning model and a 1-sentence reasoning.`;
   };
 }
 
-// ── [NEW] Autonomous Optimization (Feature 1) ────────────────────────────────
+// ── Autonomous Optimization: critique → rewrite loop on an existing prompt ──
 export async function generateOptimizedPrompt(userRequest) {
-  const optimizerSystemPrompt = `You are a Senior Autonomous Prompt Optimizer.
-Your goal is to take a user's raw idea and iterate on it to make it "perfect" using COSTAR/RISEN frameworks.
-1. Research the domain.
-2. Draft a version.
-3. Critique and refine.
-Output ONLY the final highly-optimized prompt.`;
+  if (configuredProviders().length === 0) {
+    throw new Error('No LLM provider configured.');
+  }
+  const modelsUsed = [];
+  const analysis = await analyzeRequest(userRequest);
+  if (analysis.model) modelsUsed.push(analysis.model);
 
-  const result = await chatResilient(optimizerSystemPrompt, userRequest, { role: 'OPTIMIZER' });
+  // If the input is a bare idea rather than a prompt, draft first; otherwise refine what was given.
+  let base = userRequest;
+  const looksLikePrompt = userRequest.length > 200 || /\b(you are|role|task|requirements|constraints|output format)\b/i.test(userRequest);
+  if (!looksLikePrompt) {
+    const draft = await chatResilient(buildSystemPrompt(analysis.domain, analysis.promptType), buildDrafterInput(userRequest, analysis), { role: 'OPTIMIZER', maxTokens: 2500 });
+    base = draft.text;
+    modelsUsed.push(`${draft.provider}:${draft.model}`);
+  }
+
+  const refined = await refineUntilGood(base, userRequest, analysis, modelsUsed);
+  const last = modelsUsed[modelsUsed.length - 1] || 'unknown';
   return {
     original: userRequest,
-    optimized: result.text,
-    model: result.model,
-    provider: result.provider
+    optimized: refined.prompt,
+    qualityScore: qualityFromRubric(refined.rubric, 'llm-rubric'),
+    issues: refined.rubric?.issues || [],
+    refinements: refined.refinements,
+    assumptions: analysis.assumptions,
+    clarifyingQuestions: analysis.missingInfo,
+    model: last.split(':').slice(1).join(':') || last,
+    provider: last.split(':')[0],
+    pipeline: modelsUsed,
   };
 }
 

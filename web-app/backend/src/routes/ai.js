@@ -60,17 +60,22 @@ router.post('/generate', async (req, res) => {
 
   try {
     const result = await generateWithAI(request.trim());
-    const qualityScore = scorePrompt(result.prompt);
+    // Prefer the critic's rubric score; fall back to regex heuristics when the critic could not run.
+    const qualityScore = result.qualityScore || scorePrompt(result.prompt);
 
     trackEvent({
       eventType: 'ai_prompt_generated',
       sessionId: req.headers['x-session-id'],
       userId: req.user?.id,
       qualityScore: qualityScore.overallScore,
-      metadata: { 
-        source: result.source, 
+      metadata: {
+        source: result.source,
+        model: result.model,
+        scoreMethod: qualityScore.method,
+        refinements: result.refinements,
+        latencyMs: result.latencyMs,
         requestLength: request.length,
-        securityRisk: result.security?.riskLevel 
+        securityRisk: result.security?.riskLevel
       },
     });
 

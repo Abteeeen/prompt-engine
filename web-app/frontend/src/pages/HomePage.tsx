@@ -61,14 +61,27 @@ const PROMPT_TYPE_CONFIG: Record<PromptType, { label: string; hint: string }> = 
 
 
 
+interface AIAnalysis {
+  method?: string
+  targetTool?: string
+  audience?: string
+  goal?: string
+  deliverable?: string
+  framework?: string
+  complexity?: string
+  assumptions?: string[]
+  clarifyingQuestions?: string[]
+  successCriteria?: string[]
+}
+
 interface AIResult {
-
   prompt: string
-
   qualityScore: QualityScore
-
   source: string
-
+  model?: string
+  analysis?: AIAnalysis | null
+  issues?: string[]
+  refinements?: number
 }
 
 
@@ -961,7 +974,7 @@ function AIGenerator() {
 
                   <span className="text-xs text-white/40">
 
-                    {result.source === 'groq' ? '· AI-powered' : '· Template engine'}
+                    {result.source === 'template' ? '· Template engine' : `· AI-powered${result.refinements ? ` · ${result.refinements} refinement pass${result.refinements > 1 ? 'es' : ''}` : ''}`}
 
                   </span>
 
@@ -1010,6 +1023,32 @@ function AIGenerator() {
               />
 
 
+
+              {/* Analyst insight: assumptions the engine made + questions that would sharpen the prompt */}
+              {result.analysis && ((result.analysis.assumptions?.length ?? 0) > 0 || (result.analysis.clarifyingQuestions?.length ?? 0) > 0) && (
+                <div className="px-5 py-4 grid gap-4 md:grid-cols-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(139,92,246,0.04)' }}>
+                  {(result.analysis.assumptions?.length ?? 0) > 0 && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-purple-300/80 font-semibold mb-2">Assumptions made (edit the prompt if wrong)</p>
+                      <ul className="space-y-1">
+                        {result.analysis.assumptions!.map((a, i) => (
+                          <li key={i} className="text-xs text-white/60 flex gap-2"><span className="text-purple-400">•</span><span>{a}</span></li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {(result.analysis.clarifyingQuestions?.length ?? 0) > 0 && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-purple-300/80 font-semibold mb-2">Answer these for an even better prompt</p>
+                      <ul className="space-y-1">
+                        {result.analysis.clarifyingQuestions!.map((q, i) => (
+                          <li key={i} className="text-xs text-white/60 flex gap-2"><span className="text-purple-400">?</span><span>{q}</span></li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Footer hint */}
 
