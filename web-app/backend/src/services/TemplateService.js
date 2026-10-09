@@ -5,11 +5,10 @@ import logger from '../utils/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Path to the Phase 2 domain template markdown files
-const TEMPLATES_DIR = path.join(
-  __dirname,
-  '../../../../Phase-2-templates/domain-templates'
-);
+// Template markdown files ship inside the backend package (backend/templates) so a
+// backend-only deploy works. TEMPLATES_DIR overrides the location.
+const TEMPLATES_DIR = process.env.TEMPLATES_DIR
+  || path.join(__dirname, '../../templates');
 
 // Static metadata per template file (filename → structured meta)
 const TEMPLATE_META = {

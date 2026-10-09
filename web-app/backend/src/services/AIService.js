@@ -1,38 +1,20 @@
 import logger from '../utils/logger.js';
 import { loadTemplates } from './TemplateService.js';
-import { createClient } from '@supabase/supabase-js';
-import { pipeline } from '@xenova/transformers';
-
-import security from './SecurityService.js';
-import { chat, chatResilient, configuredProviders, arenaModels } from './llm/providers.js';
+import { chatResilient, configuredProviders } from './llm/providers.js';
 import { DIMENSION_META, buildQualityScore } from './QualityScorerService.js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
-let supabase = null;
-if (supabaseUrl && supabaseKey) {
-  supabase = createClient(supabaseUrl, supabaseKey);
-}
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
+const TAVILY_ENABLED = Boolean(TAVILY_API_KEY) && process.env.TAVILY_ON_GENERATE === 'true';
 
-// Arena models come from ARENA_MODELS env (see llm/providers.js); default is one model per configured provider.
-
-let extractor = null;
-async function getExtractor() {
-  if (!extractor) {
-    extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-  }
-  return extractor;
-}
-
-// Level 3: Tavily Search
+// Optional web enrichment. Off unless TAVILY_ON_GENERATE=true: it adds a call and latency to every run.
 async function tavilySearch(query) {
-  if (!TAVILY_API_KEY) return '';
+  if (!TAVILY_ENABLED) return '';
   try {
     const res = await fetch('https://api.tavily.com/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ api_key: TAVILY_API_KEY, query, search_depth: 'basic', include_answer: true, max_results: 3 })
+      body: JSON.stringify({ api_key: TAVILY_API_KEY, query, search_depth: 'basic', include_answer: true, max_results: 3 }),
+      signal: AbortSignal.timeout(8000),
     });
     const data = await res.json();
     if (data.answer) return data.answer;
@@ -43,19 +25,6 @@ async function tavilySearch(query) {
   }
 }
 
-// Level 2: Supabase RAG
-async function getSupabaseContext(userRequest) {
-  if (!supabase) return '';
-  try {
-    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl('test'); // check if supabase works
-  } catch (err) {
-    // skip
-  }
-  return '';
-}
-
-
-// ── Phase 1 Research: 45 Core Principles (injected into every call) ──────────
 const RESEARCH_PRINCIPLES = `
 PROMPT ENGINEERING PRINCIPLES (Phase 1 Research):
 
@@ -723,7 +692,7 @@ const QUALITY_TARGET = parseInt(process.env.LLM_QUALITY_TARGET || '27', 10);    
 const MAX_REFINEMENTS = parseInt(process.env.LLM_MAX_REFINEMENTS || '2', 10);     // critique passes
 
 // ── Stage 1: ANALYST — structured understanding of the request ───────────────
-async function analyzeRequest(userRequest, webContext = '') {
+async function analyzeRequest(userRequest, webContext = '', contextBlock = '', tally = null) {
   const templates = loadTemplates();
   const domainIds = templates.map(t => `${t.id} (${t.name})`).join(', ');
   const typeKeys = Object.keys(TYPE_SYSTEM_PROMPTS).filter(k => k !== 'auto').join(', ');
@@ -750,6 +719,7 @@ Return ONLY a JSON object with exactly these keys:
 Be concrete. Never leave arrays empty when a reasonable answer exists. No markdown, no commentary, JSON only.`;
 
   let user = `USER REQUEST:\n"""${userRequest}"""`;
+  if (contextBlock) user += `\n\n${contextBlock}\n(Treat these as answered. Do not list them under missingInfo; put them under assumptions only if you rely on them.)`;
   if (webContext) user += `\n\nLIVE WEB CONTEXT (may be useful for domain facts):\n${webContext.slice(0, 1500)}`;
 
   const fallback = () => ({
@@ -763,7 +733,7 @@ Be concrete. Never leave arrays empty when a reasonable answer exists. No markdo
   });
 
   try {
-    const res = await chatResilient(system, user, { role: 'RESEARCHER', temperature: 0.2, maxTokens: 900 });
+    const res = await chatResilient(system, user, { role: 'RESEARCHER', temperature: 0.2, maxTokens: 900, tally });
     const json = extractJson(res.text);
     if (!json) throw new Error('analysis was not valid JSON');
 
@@ -795,7 +765,7 @@ Be concrete. Never leave arrays empty when a reasonable answer exists. No markdo
 }
 
 // ── Stage 2: DRAFTER — writes the prompt from the analysis ───────────────────
-function buildDrafterInput(userRequest, analysis, ragContext = '') {
+function buildDrafterInput(userRequest, analysis, ragContext = '', contextBlock = '', previousPrompt = '') {
   const lines = [`Write a complete, expert-level AI prompt for this request:\n"""${userRequest}"""`];
 
   const brief = [];
@@ -811,6 +781,8 @@ function buildDrafterInput(userRequest, analysis, ragContext = '') {
   if (analysis.strategy) brief.push(`Strategy from the analyst: ${analysis.strategy}`);
   if (brief.length) lines.push(`\nANALYST BRIEF:\n${brief.join('\n')}`);
 
+  if (contextBlock) lines.push(`\n${contextBlock}\nUse these facts directly in the prompt (voice, claims, audience, constraints). Never contradict them.`);
+  if (previousPrompt) lines.push(`\nPREVIOUS DRAFT (the user has now answered questions about it; keep what works, change only what the new facts affect):\n"""\n${previousPrompt.slice(0, 6000)}\n"""`);
   if (ragContext) lines.push(`\nSUCCESSFUL EXAMPLE PROMPTS (structural inspiration only, do not copy content):\n${ragContext}`);
 
   lines.push(`\nREQUIREMENTS FOR YOUR OUTPUT:
@@ -827,7 +799,7 @@ Write ONLY the final prompt. No preamble, no explanation.`);
 }
 
 // ── Stage 3: CRITIC — rubric score + rewrite ─────────────────────────────────
-async function critiquePrompt(promptText, userRequest, analysis = null) {
+async function critiquePrompt(promptText, userRequest, analysis = null, tally = null) {
   const dims = DIMENSION_META.map(d => `  "${d.key}": 0-3  (${d.label}: ${d.description})`).join(',\n');
   const system = `You are a rigorous prompt QA reviewer. You grade AI prompts against a 10-dimension rubric and rewrite them when they fall short. You are strict: a 3 means nothing could be improved on that dimension.
 
@@ -846,7 +818,7 @@ Rules for improvedPrompt: it must be a finished prompt ready to paste into an AI
   if (analysis?.audience) user += `\nINTENDED AUDIENCE OF THE OUTPUT: ${analysis.audience}\n`;
   user += `\nPROMPT TO REVIEW:\n"""\n${promptText}\n"""`;
 
-  const res = await chatResilient(system, user, { role: 'CRITIC', temperature: 0.2, maxTokens: 3000 });
+  const res = await chatResilient(system, user, { role: 'CRITIC', temperature: 0.2, maxTokens: 3000, tally });
   const json = extractJson(res.text);
   if (!json || typeof json.scores !== 'object') throw new Error('critic did not return valid JSON');
 
@@ -869,7 +841,7 @@ Rules for improvedPrompt: it must be a finished prompt ready to paste into an AI
  * Critique → improve → re-critique until the rubric target is met or the
  * refinement budget is spent. Returns the best prompt and its verified score.
  */
-async function refineUntilGood(draftText, userRequest, analysis, modelsUsed) {
+async function refineUntilGood(draftText, userRequest, analysis, modelsUsed, tally = null) {
   let current = draftText;
   let lastRubric = null;
   let refinements = 0;
@@ -877,7 +849,7 @@ async function refineUntilGood(draftText, userRequest, analysis, modelsUsed) {
   for (let pass = 0; pass < Math.max(1, MAX_REFINEMENTS); pass++) {
     let rubric;
     try {
-      rubric = await critiquePrompt(current, userRequest, analysis);
+      rubric = await critiquePrompt(current, userRequest, analysis, tally);
       modelsUsed.push(rubric.model);
     } catch (err) {
       logger.warn('Critic stage failed; keeping current draft', { pass, error: err.message });
@@ -905,11 +877,17 @@ function qualityFromRubric(rubric, method) {
 }
 
 // ── Main AI generation function ───────────────────────────────────────────────
-export async function generateWithAI(userRequest) {
-  // Step 0: Security Shield
-  const securityResult = await security.scanPrompt(userRequest);
-  if (!securityResult.isSafe && securityResult.riskLevel === 'high') {
-    throw new Error(`Security Risk Detected: ${securityResult.findings.join(', ')}`);
+/**
+ * @param {string} userRequest
+ * @param {object} [options]
+ * @param {string}   [options.contextBlock]   rendered business profile (ProfileService.buildContextBlock)
+ * @param {string[]} [options.knownFacts]     answered clarifying questions, "Q: ... A: ..." lines
+ * @param {string}   [options.previousPrompt] the draft the user is refining
+ */
+export async function generateWithAI(userRequest, { contextBlock = '', knownFacts = [], previousPrompt = '' } = {}) {
+  const tally = { prompt_tokens: 0, completion_tokens: 0, calls: 0 };
+  if (knownFacts.length) {
+    contextBlock = `${contextBlock ? contextBlock + '\n\n' : ''}ANSWERS THE USER GAVE TO CLARIFYING QUESTIONS (ground truth):\n- ${knownFacts.join('\n- ')}`;
   }
 
   const isImageRequest = /photo|image|picture|illustration|draw|render|visual|portrait|artwork|family photo/i.test(userRequest);
@@ -926,9 +904,7 @@ export async function generateWithAI(userRequest) {
   let webContext = '';
   let ragContext = '';
   try {
-    const results = await Promise.allSettled([tavilySearch(userRequest), getSupabaseContext(userRequest)]);
-    webContext = results[0].status === 'fulfilled' ? results[0].value : '';
-    ragContext = results[1].status === 'fulfilled' ? results[1].value : '';
+    webContext = await tavilySearch(userRequest);
   } catch (err) {
     logger.warn('Context gathering failed silently', { error: err.message });
   }
@@ -936,7 +912,7 @@ export async function generateWithAI(userRequest) {
   // ── Image prompts: short single-shot path ─────────────────────────────────
   if (isImageRequest) {
     try {
-      const res = await chatResilient(IMAGE_SYSTEM_PROMPT, `Create a detailed image generation prompt for: "${userRequest}"`, { role: 'DRAFTER' });
+      const res = await chatResilient(IMAGE_SYSTEM_PROMPT, `Create a detailed image generation prompt for: "${userRequest}"${contextBlock ? `\n\n${contextBlock}` : ''}`, { role: 'DRAFTER', tally });
       modelsUsed.push(`${res.provider}:${res.model}`);
       return {
         prompt: res.text,
@@ -947,7 +923,7 @@ export async function generateWithAI(userRequest) {
         detectedType: 'image',
         analysis: null,
         refinements: 0,
-        security: securityResult,
+        tokenUsage: tally,
         latencyMs: Date.now() - startedAt,
       };
     } catch (err) {
@@ -957,14 +933,14 @@ export async function generateWithAI(userRequest) {
   }
 
   // ── Stage 1: Analyst ──────────────────────────────────────────────────────
-  const analysis = await analyzeRequest(userRequest, webContext);
+  const analysis = await analyzeRequest(userRequest, webContext, contextBlock, tally);
   if (analysis.model) modelsUsed.push(analysis.model);
 
   // ── Stage 2: Drafter ──────────────────────────────────────────────────────
   let draftText = '';
   try {
     const systemPrompt = buildSystemPrompt(analysis.domain, analysis.promptType);
-    const draft = await chatResilient(systemPrompt, buildDrafterInput(userRequest, analysis, ragContext), { role: 'DRAFTER', maxTokens: 2500 });
+    const draft = await chatResilient(systemPrompt, buildDrafterInput(userRequest, analysis, ragContext, contextBlock, previousPrompt), { role: 'DRAFTER', maxTokens: 2500, tally });
     draftText = draft.text;
     modelsUsed.push(`${draft.provider}:${draft.model}`);
   } catch (err) {
@@ -973,7 +949,7 @@ export async function generateWithAI(userRequest) {
   }
 
   // ── Stage 3: Critic loop ──────────────────────────────────────────────────
-  const refined = await refineUntilGood(draftText, userRequest, analysis, modelsUsed);
+  const refined = await refineUntilGood(draftText, userRequest, analysis, modelsUsed, tally);
   const qualityScore = qualityFromRubric(refined.rubric, 'llm-rubric');
 
   const last = modelsUsed[modelsUsed.length - 1] || 'unknown';
@@ -1004,91 +980,44 @@ export async function generateWithAI(userRequest) {
     qualityScore,                      // null when the critic could not run; the route falls back to heuristics
     issues: refined.rubric?.issues || [],
     refinements: refined.refinements,
-    security: securityResult,
+    tokenUsage: tally,
     latencyMs: Date.now() - startedAt,
   };
 }
 
-// ── [NEW] Multi-Model Arena (Feature 4) ──────────────────────────────────────
-export async function generateArenaResults(userRequest) {
-  logger.info('Starting Multi-Model Arena generation', { requestLength: userRequest.length });
-
-  const models = arenaModels();
-  if (models.length === 0) throw new Error('No LLM provider configured for the arena.');
-
-  const systemPrompt = buildSystemPrompt(detectDomain(userRequest), detectPromptType(userRequest));
-  const promises = models.map(m =>
-    chat(systemPrompt, userRequest, { provider: m.provider, model: m.model })
-      .then(res => ({
-        modelId: m.model,
-        modelName: m.name,
-        provider: m.provider,
-        response: res.text,
-        status: 'success'
-      })).catch(err => ({
-        modelId: m.model,
-        modelName: m.name,
-        provider: m.provider,
-        error: err.message,
-        status: 'error'
-      }))
-  );
-
-  const results = await Promise.all(promises);
-  
-  // Auto-Judge (Feature 4 - Subagent Pattern)
-  const judgePrompt = `You are an expert AI Prompt Judge. 
-Analyze the following prompt variations generated for the request: "${userRequest}".
-Pick the best one based on: Clarity, Correctness, and Detail.
-Output ONLY the name of the winning model and a 1-sentence reasoning.`;
-
-  const judgeInput = results
-    .filter(r => r.status === 'success')
-    .map(r => `Model: ${r.modelName}\nResponse:\n${r.response}`)
-    .join('\n\n---\n\n');
-
-  let juryResult = { winner: 'Unknown', reasoning: 'No valid results to judge' };
-  if (judgeInput) {
-    try {
-      const jury = await chatResilient(judgePrompt, judgeInput, { role: 'JURY' });
-      const juryText = jury.text;
-      juryResult = {
-        winner: juryText.split('\n')[0],
-        reasoning: juryText.split('\n').slice(1).join(' ') || juryText
-      };
-    } catch (err) {
-      logger.warn('Jury fails', { error: err.message });
-    }
-  }
-
-  return {
-    prompt: userRequest,
-    results,
-    jury: juryResult
-  };
+/**
+ * Re-run the pipeline with the user's answers to the clarifying questions folded in as facts.
+ */
+export async function refineWithAnswers({ request, prompt = '', answers = [], contextBlock = '' }) {
+  const knownFacts = answers
+    .filter(a => a && a.answer && a.answer.trim())
+    .map(a => `Q: ${String(a.question).trim()}  A: ${String(a.answer).trim()}`);
+  return generateWithAI(request, { contextBlock, knownFacts, previousPrompt: prompt });
 }
 
 // ── Autonomous Optimization: critique → rewrite loop on an existing prompt ──
-export async function generateOptimizedPrompt(userRequest) {
+export async function generateOptimizedPrompt(userRequest, { contextBlock = '' } = {}) {
   if (configuredProviders().length === 0) {
     throw new Error('No LLM provider configured.');
   }
   const modelsUsed = [];
-  const analysis = await analyzeRequest(userRequest);
+  const tally = { prompt_tokens: 0, completion_tokens: 0, calls: 0 };
+  const analysis = await analyzeRequest(userRequest, '', contextBlock, tally);
   if (analysis.model) modelsUsed.push(analysis.model);
 
   // If the input is a bare idea rather than a prompt, draft first; otherwise refine what was given.
   let base = userRequest;
   const looksLikePrompt = userRequest.length > 200 || /\b(you are|role|task|requirements|constraints|output format)\b/i.test(userRequest);
   if (!looksLikePrompt) {
-    const draft = await chatResilient(buildSystemPrompt(analysis.domain, analysis.promptType), buildDrafterInput(userRequest, analysis), { role: 'OPTIMIZER', maxTokens: 2500 });
+    const draft = await chatResilient(buildSystemPrompt(analysis.domain, analysis.promptType), buildDrafterInput(userRequest, analysis, '', contextBlock), { role: 'OPTIMIZER', maxTokens: 2500, tally });
     base = draft.text;
     modelsUsed.push(`${draft.provider}:${draft.model}`);
   }
 
-  const refined = await refineUntilGood(base, userRequest, analysis, modelsUsed);
+  const refined = await refineUntilGood(base, userRequest, analysis, modelsUsed, tally);
   const last = modelsUsed[modelsUsed.length - 1] || 'unknown';
   return {
+    tokenUsage: tally,
     original: userRequest,
     optimized: refined.prompt,
     qualityScore: qualityFromRubric(refined.rubric, 'llm-rubric'),
@@ -1122,35 +1051,3 @@ function emergencyFallback(userRequest, isImageRequest = false) {
     detectedType: 'auto',
   };
 }
-
-/**
- * Ingests a new high-quality prompt into the Supabase knowledge base.
- */
-export async function ingestPrompt({ user_idea, perfect_prompt, domain }) {
-  if (!supabase) {
-    throw new Error('Supabase client not initialized');
-  }
-
-  try {
-    const fn = await getExtractor();
-    const output = await fn(user_idea, { pooling: 'mean', normalize: true });
-    const embedding = Array.from(output.data);
-
-    const { data, error } = await supabase.from('gold_standard_prompts').insert([
-      {
-        user_idea,
-        perfect_prompt,
-        domain: domain || 'general',
-        embedding
-      }
-    ]);
-
-    if (error) throw error;
-    logger.info('Prompt ingested successfully via seed API', { user_idea });
-    return { success: true };
-  } catch (err) {
-    logger.error('Prompt ingestion failed:', { error: err.message });
-    throw err;
-  }
-}
-

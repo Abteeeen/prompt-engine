@@ -31,7 +31,8 @@ const DEFAULT_MAX_TOKENS = parseInt(process.env.LLM_MAX_TOKENS || '1500', 10);
 const DEFAULT_TEMPERATURE = parseFloat(process.env.LLM_TEMPERATURE || '0.75');
 const STATE_FILE = process.env.LLM_STATE_FILE || '';
 
-const DEFAULT_ORDER = 'groq,cerebras,gemini,sambanova,mistral,github,cloudflare,together,huggingface,cohere,openrouter,custom';
+// Order reflects verified free tiers (2026-10): biggest daily buckets first, overflow providers last.
+const DEFAULT_ORDER = 'groq,gemini,cloudflare,sambanova,openrouter,mistral,cerebras,nvidia,zai,huggingface,cohere,together,custom';
 
 // Cooldown defaults (ms) by failure class
 const COOLDOWN = {
@@ -48,45 +49,57 @@ const PROVIDERS = {
   groq: {
     url: url('GROQ', 'https://api.groq.com/openai/v1/chat/completions'),
     keyEnv: 'GROQ_API_KEY',
-    defaultModel: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+    defaultModel: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',   // llama-3.3-70b left Groq's free tier in 2026
+    resetTz: 'UTC',
   },
   cerebras: {
     url: url('CEREBRAS', 'https://api.cerebras.ai/v1/chat/completions'),
     keyEnv: 'CEREBRAS_API_KEY',
-    defaultModel: process.env.CEREBRAS_MODEL || 'llama-3.3-70b',
+    defaultModel: process.env.CEREBRAS_MODEL || 'gpt-oss-120b',      // free tier requires a verified payment method
+    resetTz: 'UTC',
   },
   gemini: {
     url: url('GEMINI', 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'),
     keyEnv: 'GEMINI_API_KEY',
     defaultModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+    resetTz: 'America/Los_Angeles',                                 // Gemini free quota resets at midnight Pacific
   },
   sambanova: {
     url: url('SAMBANOVA', 'https://api.sambanova.ai/v1/chat/completions'),
     keyEnv: 'SAMBANOVA_API_KEY',
     defaultModel: process.env.SAMBANOVA_MODEL || 'Meta-Llama-3.3-70B-Instruct',
+    resetTz: 'UTC',
   },
   mistral: {
     url: url('MISTRAL', 'https://api.mistral.ai/v1/chat/completions'),
     keyEnv: 'MISTRAL_API_KEY',
     defaultModel: process.env.MISTRAL_MODEL || 'mistral-small-latest',
   },
-  github: {
-    url: url('GITHUB_MODELS', 'https://models.github.ai/inference/chat/completions'),
-    keyEnv: 'GITHUB_MODELS_TOKEN',
-    defaultModel: process.env.GITHUB_MODELS_MODEL || 'openai/gpt-4o-mini',
-  },
   cloudflare: {
     url: process.env.CLOUDFLARE_BASE_URL
-      || (process.env.CLOUDFLARE_ACCOUNT_ID
-        ? `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/ai/v1/chat/completions`
+      || ((process.env.CLOUDFLARE_ACCOUNT_ID || process.env.CF_ACCOUNT_ID)
+        ? `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID || process.env.CF_ACCOUNT_ID}/ai/v1/chat/completions`
         : null),
     keyEnv: 'CLOUDFLARE_API_TOKEN',
-    defaultModel: process.env.CLOUDFLARE_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+    defaultModel: process.env.CLOUDFLARE_MODEL || '@cf/openai/gpt-oss-120b',  // about half the neurons of llama-3.3-70b per generation
+    resetTz: 'UTC',
   },
   together: {
     url: url('TOGETHER', 'https://api.together.xyz/v1/chat/completions'),
     keyEnv: 'TOGETHER_API_KEY',
-    defaultModel: process.env.TOGETHER_MODEL || 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+    defaultModel: process.env.TOGETHER_MODEL || 'meta-llama/Llama-3.3-70B-Instruct-Turbo',  // paid: $5 minimum, no free tier
+  },
+  nvidia: {
+    // NVIDIA Build (NIM): ~40 RPM, prototyping terms. Overflow only.
+    url: url('NVIDIA', 'https://integrate.api.nvidia.com/v1/chat/completions'),
+    keyEnv: 'NVIDIA_API_KEY',
+    defaultModel: process.env.NVIDIA_MODEL || 'meta/llama-3.3-70b-instruct',
+  },
+  zai: {
+    // Z.ai GLM Flash models are priced $0 with concurrency 1. Overflow only.
+    url: url('ZAI', 'https://api.z.ai/api/paas/v4/chat/completions'),
+    keyEnv: 'ZAI_API_KEY',
+    defaultModel: process.env.ZAI_MODEL || 'glm-4.7-flash',
   },
   huggingface: {
     url: url('HF', 'https://router.huggingface.co/v1/chat/completions'),
@@ -102,6 +115,7 @@ const PROVIDERS = {
     url: url('OPENROUTER', 'https://openrouter.ai/api/v1/chat/completions'),
     keyEnv: 'OPENROUTER_API_KEY',
     defaultModel: process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free',
+    resetTz: 'UTC',
     headers: {
       'HTTP-Referer': process.env.APP_URL || 'http://localhost:5173',
       'X-Title': 'Prompt Engine',
@@ -145,10 +159,12 @@ function saveState() {
   }, 250);
 }
 
+const KEY_ALIASES = { CLOUDFLARE_API_TOKEN: 'CF_API_TOKEN' };
+
 function keysFor(name) {
   const p = PROVIDERS[name];
   if (!p) return [];
-  const raw = process.env[p.keyEnv] || '';
+  const raw = process.env[p.keyEnv] || process.env[KEY_ALIASES[p.keyEnv]] || '';
   const list = raw.split(',').map(s => s.trim()).filter(Boolean);
   if (list.length === 0 && p.keyOptional) return [''];
   return list;
@@ -272,14 +288,28 @@ export function arenaModels() {
 }
 
 // ── Error classification ─────────────────────────────────────────────────────
+const DAILY_RE = /per ?day|perday|daily|\bTPD\b|\bRPD\b|tokens per day|requests per day|free-models-per-day/i;
+const MINUTE_RE = /per ?minute|perminute|\bTPM\b|\bRPM\b/i;
 const QUOTA_RE = /quota|credit|billing|insufficient|exceeded.*(day|daily|month)|per day|daily limit|monthly limit|usage limit|out of tokens|payment/i;
+
+/** Milliseconds until the next local midnight in `tz`, plus five minutes of slack. */
+export function msUntilReset(tz = 'UTC', now = new Date()) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(now).map(p => [p.type, p.value]));
+  const elapsed = ((Number(parts.hour) % 24) * 3600 + Number(parts.minute) * 60 + Number(parts.second)) * 1000;
+  return 24 * 3600 * 1000 - elapsed + 5 * 60 * 1000;
+}
 const MODEL_RE = /model.*(not found|does not exist|decommissioned|deprecated|unavailable|not supported)|no such model|invalid model/i;
 
-function classify(status, message, retryAfterSec) {
+function classify(status, message, retryAfterSec, provider = null) {
   if (status === 401 || status === 403) return { kind: 'dead', ms: COOLDOWN.dead };
   if (status === 402) return { kind: 'quota', ms: COOLDOWN.quota };
   if (status === 429) {
-    if (retryAfterSec) return { kind: 'rate', ms: Math.min(retryAfterSec * 1000, COOLDOWN.quota) };
+    // Daily bucket exhausted: park the key until the provider's own reset time.
+    if (DAILY_RE.test(message)) return { kind: 'daily', ms: msUntilReset(PROVIDERS[provider]?.resetTz || 'UTC') };
+    if (retryAfterSec) return { kind: 'rate', ms: Math.min(Math.max(retryAfterSec, 10) * 1000, COOLDOWN.quota) };
+    if (MINUTE_RE.test(message)) return { kind: 'rate', ms: COOLDOWN.rate };
     return QUOTA_RE.test(message) ? { kind: 'quota', ms: COOLDOWN.quota } : { kind: 'rate', ms: COOLDOWN.rate };
   }
   if (status === 400 || status === 404) {
@@ -351,6 +381,8 @@ export async function chat(systemPrompt, userContent, {
         ],
         temperature,
         max_tokens: maxTokens,
+        // gpt-oss models spend output tokens on hidden reasoning; keep it short so the answer fits.
+        ...(/gpt-oss/i.test(useModel) && ['groq', 'cerebras'].includes(provider) && { reasoning_effort: process.env.LLM_REASONING_EFFORT || 'low' }),
       }),
     });
 
@@ -363,7 +395,7 @@ export async function chat(systemPrompt, userContent, {
       const raw = body?.error?.message || body?.error || body?.message || body?.detail || `HTTP ${res.status}`;
       const msg = typeof raw === 'string' ? raw : JSON.stringify(raw);
       const retryAfterSec = parseFloat(res.headers.get('retry-after') || '0') || 0;
-      const cls = classify(res.status, msg, retryAfterSec);
+      const cls = classify(res.status, msg, retryAfterSec, provider);
       penalize(provider, idx, cls, msg);
       throw new LLMError(`${provider} (${useModel}) HTTP ${res.status}: ${msg}`, { status: res.status, provider, model: useModel, retryAfterSec });
     }
@@ -414,7 +446,13 @@ export async function chatResilient(systemPrompt, userContent, { role = 'DEFAULT
       const idx = pickKey(attempt.provider);
       if (idx === -1) break;
       try {
-        return await chat(systemPrompt, userContent, { ...opts, ...attempt, keyIndex: idx });
+        const result = await chat(systemPrompt, userContent, { ...opts, ...attempt, keyIndex: idx });
+        if (opts.tally && typeof opts.tally === 'object') {
+          opts.tally.calls = (opts.tally.calls || 0) + 1;
+          opts.tally.prompt_tokens = (opts.tally.prompt_tokens || 0) + (result.usage?.prompt_tokens || 0);
+          opts.tally.completion_tokens = (opts.tally.completion_tokens || 0) + (result.usage?.completion_tokens || 0);
+        }
+        return result;
       } catch (err) {
         errors.push(err.message);
         logger.warn(`LLM call failed for role ${role}`, { provider: attempt.provider, key: idx, model: attempt.model, status: err.status, error: err.message.slice(0, 160) });
