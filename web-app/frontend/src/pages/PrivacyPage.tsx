@@ -45,6 +45,15 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
+      <Section title="3a. How the engine learns">
+        <p>
+          Prompt Engine improves by learning from prompts that worked. When a generated prompt scores highly and someone copies it, opens it in ChatGPT or Claude, saves it,
+          or marks it helpful, an anonymised copy of the request and the prompt may be added to a shared set of examples used to guide future generations. Before that happens we
+          remove email addresses, phone numbers, links and long numbers, and we never attach your name or account. Signed-in users can turn this off in Settings, which also withdraws
+          anything already contributed. Prompts in your private library are only ever used to improve your own results.
+        </p>
+      </Section>
+
       <Section title="4. What we do not do">
         <Bullets
           items={[

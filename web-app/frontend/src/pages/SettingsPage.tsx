@@ -118,7 +118,10 @@ function BusinessContext() {
 }
 
 function Account() {
-  const { user, usage, signOut, clearSession } = useAuth()
+  const { user, usage, signOut, clearSession, refresh } = useAuth()
+  const [share, setShare] = useState<boolean>(user?.share_examples !== false)
+  const [shareSaving, setShareSaving] = useState(false)
+  const [shareNote, setShareNote] = useState('')
   const navigate = useNavigate()
   const [confirm, setConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -151,6 +154,23 @@ function Account() {
     navigate('/', { replace: true })
   }
 
+  const toggleShare = async () => {
+    const next = !share
+    setShare(next)
+    setShareSaving(true)
+    setShareNote('')
+    try {
+      await api.auth.setPreferences({ share_examples: next })
+      await refresh()
+      setShareNote(next ? 'Thanks. Your best prompts can now help others.' : 'Done. Nothing you create will be shared, and past contributions were withdrawn.')
+    } catch (err) {
+      setShare(!next)
+      setShareNote(errorMessage(err, 'Could not update this setting. Please try again.'))
+    } finally {
+      setShareSaving(false)
+    }
+  }
+
   const memberSince = user.created_at ? new Date(user.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long' }) : null
 
   return (
@@ -173,6 +193,27 @@ function Account() {
           <p className="text-[11px] uppercase tracking-wide text-white/40 mb-1">Member since</p>
           <p className="text-white font-medium">{memberSince ?? '—'}</p>
         </div>
+      </div>
+
+      <div className="flex items-start justify-between gap-4 py-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div>
+          <p className="text-sm text-white font-medium">Help improve Prompt Engine</p>
+          <p className="text-xs text-white/50 mt-1 max-w-xl">
+            When a prompt you generate scores highly and you copy, save or mark it helpful, an anonymised copy (emails, phone numbers and links removed) can be used as an example to improve results for everyone. Your name and email are never included.
+          </p>
+          {shareNote && <p className="text-xs text-purple-300 mt-2">{shareNote}</p>}
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={share}
+          aria-label="Help improve Prompt Engine"
+          disabled={shareSaving}
+          onClick={toggleShare}
+          className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${share ? 'bg-purple-500' : 'bg-white/15'} ${shareSaving ? 'opacity-60' : ''}`}
+        >
+          <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${share ? 'translate-x-5' : ''}`} />
+        </button>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>

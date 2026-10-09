@@ -47,18 +47,30 @@ export function ResultActions({ prompt, title, domain, score, generationId, onCo
   const [savedId, setSavedId] = useState<string | null>(null)
   const [saveError, setSaveError] = useState('')
   const [showSignIn, setShowSignIn] = useState(false)
+  const [rated, setRated] = useState<'up' | 'down' | null>(null)
 
   // A different prompt body can be saved again.
   useEffect(() => {
     setSavedId(null)
     setSaveError('')
   }, [prompt])
+  useEffect(() => setRated(null), [generationId])
+
+  const signal = (s: 'copied' | 'opened' | 'up' | 'down') => {
+    if (generationId) api.generations.signal(generationId, s)
+  }
+  const rate = (r: 'up' | 'down') => {
+    if (rated === r) return
+    setRated(r)
+    signal(r)
+  }
 
   const copy = async () => {
     setCopyFailed(false)
     try {
       await navigator.clipboard.writeText(prompt)
       setCopied(true)
+      signal('copied')
       onCopy?.()
       setTimeout(() => setCopied(false), 2200)
     } catch {
@@ -122,7 +134,7 @@ export function ResultActions({ prompt, title, domain, score, generationId, onCo
           rel="noopener noreferrer"
           aria-disabled={disabled}
           className={`${BTN_NEUTRAL} ${disabled ? 'opacity-40 pointer-events-none' : ''}`}
-          onClick={() => api.analytics.track('prompt_opened', undefined, { target: 'chatgpt' })}
+          onClick={() => { signal('opened'); api.analytics.track('open_in_chatgpt', undefined, { target: 'chatgpt' }) }}
         >
           <ExternalLinkIcon className="w-3.5 h-3.5" />
           Open in ChatGPT
@@ -133,11 +145,33 @@ export function ResultActions({ prompt, title, domain, score, generationId, onCo
           rel="noopener noreferrer"
           aria-disabled={disabled}
           className={`${BTN_NEUTRAL} ${disabled ? 'opacity-40 pointer-events-none' : ''}`}
-          onClick={() => api.analytics.track('prompt_opened', undefined, { target: 'claude' })}
+          onClick={() => { signal('opened'); api.analytics.track('open_in_claude', undefined, { target: 'claude' }) }}
         >
           <ExternalLinkIcon className="w-3.5 h-3.5" />
           Open in Claude
         </a>
+
+        {generationId && (
+          <span className="flex items-center gap-1 ml-auto text-[11px] text-white/40">
+            <span className="hidden sm:inline">{rated ? 'Thanks, noted.' : 'Was this useful?'}</span>
+            <button
+              type="button"
+              onClick={() => rate('up')}
+              aria-pressed={rated === 'up'}
+              className={`${BTN_NEUTRAL} ${rated === 'up' ? 'text-emerald-300 border-emerald-500/30' : ''}`}
+            >
+              Helpful
+            </button>
+            <button
+              type="button"
+              onClick={() => rate('down')}
+              aria-pressed={rated === 'down'}
+              className={`${BTN_NEUTRAL} ${rated === 'down' ? 'text-red-300 border-red-500/30' : ''}`}
+            >
+              Not helpful
+            </button>
+          </span>
+        )}
       </div>
 
       {saveError && <p className="mt-2 text-xs text-red-400">{saveError}</p>}

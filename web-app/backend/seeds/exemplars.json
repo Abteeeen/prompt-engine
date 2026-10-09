@@ -1,0 +1,212 @@
+[
+ {
+  "domain": "code-generation",
+  "promptType": "code",
+  "request": "write a python function to dedupe a csv by email",
+  "prompt": "ROLE\nYou are a senior Python engineer who writes small, well-tested data utilities.\n\nTASK\nWrite a function `dedupe_by_email(in_path: str, out_path: str) -> int` that removes duplicate rows from a CSV, keyed on the email column, and returns the number of rows removed.\n\nREQUIREMENTS\n- Python 3.11, standard library only (csv, pathlib).\n- Email comparison is case-insensitive and ignores surrounding whitespace.\n- Keep the first occurrence; preserve the original column order and header.\n- Stream the file: it may be 2 GB, so never load all rows into memory at once (track seen emails in a set).\n- Rows with an empty email are kept, not deduplicated.\n- Raise ValueError with a clear message if there is no column named \"email\" (case-insensitive).\n\nOUTPUT FORMAT\n1. The function with type hints and a docstring.\n2. Five pytest tests: basic duplicates, case/whitespace variants, empty emails, missing column, header-only file.\n3. Two sentences on time and memory complexity.\n\nCHECK BEFORE ANSWERING\nRun the tests mentally against the edge cases above and fix any failure before you reply.",
+  "score": 29
+ },
+ {
+  "domain": "data-analysis",
+  "promptType": "research",
+  "request": "analyze our churn data and tell me why customers leave",
+  "prompt": "ROLE\nYou are a product analyst who explains churn to a non-technical leadership team.\n\nCONTEXT\nI will paste a CSV of customers with: signup_date, plan, seats, last_active_date, support_tickets, churned (yes/no), churn_reason (free text, often empty).\n\nTASK\nFind the three strongest drivers of churn and what we should do about each.\n\nSTEPS\n1. State the overall churn rate and the date range covered.\n2. Compare churned vs retained customers on plan, seats, tenure, days since last activity and ticket count. Report the differences as numbers.\n3. Group the free-text churn_reason values into at most 6 themes with counts.\n4. Rank the three drivers by how many churned customers they explain.\n\nOUTPUT FORMAT\n- A 3-line executive summary.\n- A table: driver | evidence (numbers) | share of churn explained | recommended action | how we will know it worked.\n- Data caveats: missing values, small groups (fewer than 30 customers), correlation vs cause.\n\nRULES\nDo not invent numbers. If the data cannot answer something, say what extra column would.",
+  "score": 29
+ },
+ {
+  "domain": "content-writing",
+  "promptType": "writing",
+  "request": "blog post about why small teams should document decisions",
+  "prompt": "ROLE\nYou are an editor at a respected engineering blog who writes for founders and team leads of 5 to 50 people.\n\nTASK\nWrite a 1,100 to 1,300 word blog post arguing that small teams should write down decisions, with a lightweight method they can start this week.\n\nAUDIENCE\nBusy team leads who think documentation is bureaucracy. They will skim first and read only if the opening earns it.\n\nSTRUCTURE\n1. Headline under 60 characters plus one alternative.\n2. Opening: a concrete scene of a team re-arguing a decision made three months ago (no \"In today's fast-paced world\").\n3. The cost: three specific failure modes with one realistic example each.\n4. The method: a 5-field decision record (context, options, decision, owner, revisit date) with a filled example.\n5. Objections and answers: \"we move too fast\", \"nobody reads docs\", \"Notion is a graveyard\".\n6. A closing call to action that takes under 10 minutes.\n\nSTYLE\nPlain words, short paragraphs, second person. One idea per paragraph. No buzzwords: avoid \"leverage\", \"synergy\", \"game-changer\".\n\nDELIVER\nThe post in Markdown, then a 155-character meta description.",
+  "score": 29
+ },
+ {
+  "domain": "customer-service",
+  "promptType": "writing",
+  "request": "reply to an angry customer whose order arrived late",
+  "prompt": "ROLE\nYou are a senior support agent for an online store known for calm, human replies.\n\nSITUATION\nA customer's order arrived 6 days after the promised date. They are angry, have used capital letters, and threatened to leave a 1-star review. The delay was caused by our warehouse, not the courier.\n\nTASK\nWrite one email reply.\n\nREQUIREMENTS\n- Open by acknowledging the specific problem in their words; no \"we apologise for any inconvenience\".\n- Take responsibility plainly: the delay was ours.\n- Offer one concrete remedy from this list, choosing the one that fits: refund of shipping cost, 15% credit on the next order, or free express shipping next time. Explain why you chose it.\n- State one change we are making so it does not repeat.\n- Do not ask for the review to be removed or mention reviews at all.\n- 120 to 170 words. Sign with a first name.\n\nTONE\nWarm, direct, adult. No exclamation marks, no emoji.\n\nOUTPUT\nSubject line, then the email body. Then one sentence explaining the remedy choice for the support lead.",
+  "score": 29
+ },
+ {
+  "domain": "email-writing",
+  "promptType": "writing",
+  "request": "email my team about moving our weekly meeting",
+  "prompt": "ROLE\nYou are a team lead who writes short, unambiguous internal emails.\n\nTASK\nWrite an email telling an 8-person team that the weekly planning meeting moves from Monday 10:00 to Tuesday 09:30, starting next week.\n\nMUST INCLUDE\n- The change in the first sentence, with day, time and time zone (CET).\n- The reason in one sentence: Mondays are lost to incident follow-up.\n- What stays the same: 45 minutes, same video link, same agenda doc.\n- What people need to do: accept the new calendar invite by Friday.\n- Who to tell if Tuesday does not work, and by when.\n\nCONSTRAINTS\n- Under 120 words. Subject line under 8 words that states the change.\n- No \"hope you're well\", no apology for the change.\n- Bullet points only for the \"what stays the same\" part.\n\nOUTPUT\nSubject line, then the email.",
+  "score": 29
+ },
+ {
+  "domain": "social-media",
+  "promptType": "writing",
+  "request": "linkedin post announcing our product launch",
+  "prompt": "ROLE\nYou are a B2B founder who writes LinkedIn posts that sound like a person, not a press release.\n\nTASK\nWrite a LinkedIn post announcing the launch of [PRODUCT], a tool that [ONE-LINE WHAT IT DOES], for [AUDIENCE].\n\nSTRUCTURE\n1. Hook (first 2 lines, under 200 characters total): a specific problem or a surprising number, not \"Excited to announce\".\n2. The problem in 2 to 3 short lines, using a real moment the audience will recognise.\n3. What we built and the one thing it does better than the obvious alternative.\n4. Proof: one concrete result, quote or number. If none is provided, leave [PROOF] for me to fill.\n5. A single call to action with a link placeholder [LINK].\n\nRULES\n- 120 to 200 words. Line breaks between every 1 to 2 sentences.\n- At most 3 hashtags, at the end. No emoji bullets.\n- Avoid: \"revolutionary\", \"game-changer\", \"thrilled\", \"journey\".\n\nOUTPUT\nThe post, then two alternative hooks.",
+  "score": 29
+ },
+ {
+  "domain": "research-summarization",
+  "promptType": "research",
+  "request": "summarize this research paper for my team",
+  "prompt": "ROLE\nYou are a research lead who turns academic papers into decisions for a product team.\n\nINPUT\nI will paste the full text of a paper.\n\nTASK\nSummarise it so a product manager can decide in 5 minutes whether it matters for us.\n\nOUTPUT FORMAT\n1. One-sentence takeaway in plain English.\n2. What they did: question, method, data size, in at most 4 bullets.\n3. What they found: the 3 results that matter, each with the actual number and its uncertainty if reported.\n4. How strong is it: sample size, study design, obvious confounders, whether it was peer reviewed. Rate evidence as strong, moderate or weak and say why.\n5. So what for us: 2 to 3 implications for a [OUR PRODUCT/DOMAIN] team, each tagged \"act now\", \"watch\" or \"ignore\".\n6. Quotes: up to 2 short verbatim sentences with section names.\n\nRULES\n- Do not add facts that are not in the paper. If something is unclear, say \"the paper does not say\".\n- Under 400 words total.",
+  "score": 29
+ },
+ {
+  "domain": "teaching-explanation",
+  "promptType": "auto",
+  "request": "explain how compound interest works to a teenager",
+  "prompt": "ROLE\nYou are a patient maths teacher who explains money to 15-year-olds without talking down to them.\n\nTASK\nExplain compound interest so the student could explain it to a friend afterwards.\n\nSTRUCTURE\n1. Start with a question about something they care about (a phone, a first car), not a definition.\n2. Simple interest vs compound interest with one worked example: 1,000 saved at 5% for 10 years, showing year 1, 2, 3 and 10 for both.\n3. The \"interest on interest\" idea in one sentence they could repeat.\n4. The rule of 72 as a shortcut, with one example.\n5. The flip side: how the same maths makes credit card debt grow.\n6. Three quick check questions with answers hidden at the end.\n\nSTYLE\nShort sentences, no jargon without a one-line explanation, numbers rounded to whole units. Under 450 words.",
+  "score": 29
+ },
+ {
+  "domain": "product-management",
+  "promptType": "planning",
+  "request": "write a PRD for adding team workspaces",
+  "prompt": "ROLE\nYou are a senior product manager writing a one-page PRD that engineers can estimate from.\n\nTASK\nWrite a PRD for adding team workspaces to [PRODUCT], where today every account is single-user.\n\nSECTIONS\n1. Problem: who is hurt today and how we know (cite [EVIDENCE]: tickets, churn reasons, sales calls).\n2. Goal and non-goals: 3 of each. Non-goals must include billing changes and SSO.\n3. Users and jobs: owner, member, viewer; one job-to-be-done each.\n4. Requirements: numbered, each testable, with MUST/SHOULD/COULD. Cover invites, roles, shared library, moving existing personal items, leaving a workspace.\n5. Success metrics: one primary metric with target and timeframe, two guardrails.\n6. Open questions: at most 5, each with an owner.\n7. Rollout: beta cohort, flag, and the condition to go to 100%.\n\nRULES\nUnder 900 words. No solution design beyond what is needed to remove ambiguity. Flag every assumption with \"Assumption:\".",
+  "score": 29
+ },
+ {
+  "domain": "creative-brainstorming",
+  "promptType": "auto",
+  "request": "ideas for a launch campaign for a budgeting app",
+  "prompt": "ROLE\nYou are a creative director who produces many ideas fast, then judges them hard.\n\nBRIEF\nProduct: a budgeting app for people in their twenties who have never budgeted. Budget: under 2,000 USD. Channels: TikTok, Instagram, Reddit, campus partnerships. Goal: 5,000 sign-ups in 30 days.\n\nTASK\n1. Generate 15 campaign ideas, one line each, spanning at least 4 different mechanics (challenge, stunt, partnership, content series, tool, community).\n2. Score each 1 to 5 on: cost fit, shareability, fit with the audience, how directly it drives sign-ups.\n3. Pick the top 3 and develop each into: concept name, the hook in one sentence, 3 execution steps, what it costs, the metric that proves it is working in week 1.\n\nRULES\n- No celebrity or influencer deals above budget.\n- At least 3 of the 15 ideas must be deliberately unusual.\n- Be honest in scoring; most ideas should not score 5.",
+  "score": 29
+ },
+ {
+  "domain": "cold-outreach",
+  "promptType": "writing",
+  "request": "cold email to a saas founder about our tool",
+  "prompt": "ROLE\nYou are a founder writing to another founder. You are not a salesperson and the email must not read like one.\n\nTASK\nWrite one cold email to the founder of a seed-stage SaaS company. The only goal is a reply agreeing to a 15-minute call.\n\nCONTEXT\n- Sender: [YOUR NAME], founder of [PRODUCT], which [WHAT IT DOES IN ONE LINE].\n- Reader: technical founder of a 5 to 30 person team; reads email on a phone between meetings.\n- Likely pain: [PAIN IN THEIR WORDS].\n\nREQUIREMENTS\n- Subject line of 6 words or fewer, lowercase, no clickbait.\n- Body of 120 words or fewer, three short paragraphs.\n- First sentence: one specific, checkable observation about their company. Leave [OBSERVATION] if none is given.\n- Exactly one proof point with one number; use [PROOF] if none is given.\n- One ask, as a yes/no question with two time windows.\n- Do not use \"hope this finds you well\", \"quick question\", \"game-changer\", \"10x\".\n\nOUTPUT\nSubject, body, then two alternative first lines for different triggers (a funding round, a hiring post).\n\nCHECK\nIf the first line could be sent to any founder, rewrite it.",
+  "score": 30
+ },
+ {
+  "domain": "sales-call-script",
+  "promptType": "auto",
+  "request": "discovery call script for selling hr software",
+  "prompt": "ROLE\nYou are a sales coach who trains new account executives in consultative discovery.\n\nTASK\nWrite a 25-minute discovery call guide for selling [HR SOFTWARE] to HR managers at 50 to 300 person companies.\n\nSTRUCTURE\n1. Opening (2 min): agenda, time check, permission to ask questions. Word for word.\n2. Current state (8 min): 6 open questions about how they handle hiring, onboarding and reviews today. For each, one follow-up that digs for numbers (hours, cost, error rate).\n3. Impact (5 min): 3 questions that tie the problem to business cost and who feels it.\n4. Decision process (5 min): budget, timeline, other stakeholders, what happened last time they bought software.\n5. Next step (5 min): two scripted closes depending on fit, and a polite disqualification line if there is no fit.\n\nRULES\n- Questions must be open; no leading or yes/no questions in sections 2 and 3.\n- The rep talks less than 30% of the time; mark where to stay silent.\n- Include 3 red flags that mean the deal will not close.",
+  "score": 29
+ },
+ {
+  "domain": "objection-handling",
+  "promptType": "auto",
+  "request": "how to handle 'it's too expensive' objection",
+  "prompt": "ROLE\nYou are a B2B sales trainer who teaches reps to handle objections without discounting.\n\nTASK\nWrite a response playbook for the objection \"it's too expensive\" for [PRODUCT] priced at [PRICE] per month.\n\nFOR EACH OF THESE 4 VARIANTS\na) Real budget limit. b) Comparing to a cheaper competitor. c) Not convinced of the value yet. d) Negotiation tactic.\n\nPROVIDE\n- How to tell which variant it is: one diagnostic question and what each answer means.\n- A word-for-word response (under 60 words) that acknowledges, asks, and reframes to value.\n- The proof to bring: a calculation, a case study type, or a trial structure.\n- What never to say.\n\nRULES\n- No discount is offered in the first response of any variant.\n- Tone: calm and curious, never defensive.\n- End with a one-page cheat sheet table: variant | signal | question | response | proof.",
+  "score": 29
+ },
+ {
+  "domain": "youtube-script",
+  "promptType": "writing",
+  "request": "youtube video script about learning to code at 30",
+  "prompt": "ROLE\nYou are a YouTube scriptwriter for an educational channel with high retention.\n\nTASK\nWrite a 9 to 11 minute script titled around \"Learning to code at 30\" for career changers.\n\nSTRUCTURE\n1. Hook (0:00 to 0:20): a specific, slightly uncomfortable truth, then the promise of the video. No channel intro.\n2. Three myths, each busted with one real data point or story (use [SOURCE] where a citation is needed).\n3. A 12-month plan in 4 phases with weekly hours, what to build in each phase, and how to know you are ready for the next.\n4. The hardest moment (month 4 to 6) and how to get through it.\n5. Close: one action for today and a natural lead into the next video.\n\nFORMAT\nTwo columns per beat: SPOKEN (what I say) and ON SCREEN (b-roll, text overlay, graphic). Mark pattern interrupts every 60 to 90 seconds.\n\nSTYLE\nConversational, second person, short sentences that are easy to say out loud.",
+  "score": 29
+ },
+ {
+  "domain": "podcast-outline",
+  "promptType": "planning",
+  "request": "podcast episode outline interviewing a startup founder",
+  "prompt": "ROLE\nYou are a podcast producer preparing a host for a 45-minute founder interview.\n\nGUEST\n[NAME], founder of [COMPANY], which [WHAT IT DOES]; known for [ONE NOTABLE THING].\n\nDELIVER\n1. Episode title (3 options) and a 2-sentence description for the feed.\n2. Cold open: the moment from the interview most likely to make someone keep listening, as a question to ask early.\n3. Segments with timings: origin (8 min), the hardest decision (12 min), how they work (10 min), what they got wrong (8 min), rapid fire (5 min), close (2 min).\n4. For each segment: 3 main questions and 2 follow-ups that push for specifics (numbers, names, moments).\n5. Questions to avoid because the guest has answered them on 5 other shows.\n6. Three clip-able moments to listen for, for social.\n\nRULES\nOpen questions only. No question longer than 25 words.",
+  "score": 29
+ },
+ {
+  "domain": "tiktok-hook",
+  "promptType": "writing",
+  "request": "tiktok hooks for a meal prep business",
+  "prompt": "ROLE\nYou are a short-form video strategist who writes hooks that stop the scroll in the first second.\n\nPRODUCT\nA weekly meal prep service for busy professionals in [CITY]; meals from [PRICE] each.\n\nTASK\nWrite 12 hooks for 15 to 30 second TikToks, across these patterns (at least 2 each): curiosity gap, bold claim, relatable pain, before/after, mistake callout, number list.\n\nFOR EACH HOOK\n- The spoken line (under 12 words).\n- The first frame: what is on screen in the first second.\n- On-screen text (under 7 words).\n- The payoff that must come by second 8 so the hook is honest.\n\nRULES\n- No clickbait the video cannot pay off.\n- No \"you won't believe\", \"wait for it\".\n- Then pick the 3 strongest and explain in one line each why.",
+  "score": 29
+ },
+ {
+  "domain": "contract-drafting",
+  "promptType": "writing",
+  "request": "draft a simple freelance design contract",
+  "prompt": "ROLE\nYou are a contracts paralegal drafting plain-English agreements for freelancers. You are not giving legal advice.\n\nTASK\nDraft a freelance design services agreement between [DESIGNER] and [CLIENT] for [PROJECT], governed by the law of [JURISDICTION].\n\nCLAUSES (numbered, plain English)\n1. Scope and deliverables, with a schedule placeholder.\n2. Revisions: [N] rounds included, extra rounds at [RATE].\n3. Fees and payment: [AMOUNT], 50% upfront, balance on delivery, late fee after 14 days.\n4. Timeline and what happens if the client is late with feedback.\n5. Intellectual property: transfers on full payment; designer keeps portfolio rights.\n6. Confidentiality.\n7. Termination by either side with 14 days' notice; payment for work done.\n8. Liability cap at fees paid.\n9. Signatures.\n\nRULES\n- Every number and name is a [PLACEHOLDER].\n- After the contract, list 5 points the user should have a local lawyer review.\n- Add the line \"This template is not legal advice.\" at the top.",
+  "score": 29
+ },
+ {
+  "domain": "privacy-policy",
+  "promptType": "writing",
+  "request": "privacy policy for my small saas app",
+  "prompt": "ROLE\nYou are a privacy specialist who writes readable privacy policies for small SaaS products. This is a draft, not legal advice.\n\nPRODUCT FACTS (fill before use)\nCompany [NAME] in [COUNTRY]; collects [DATA LIST]; uses processors [PROCESSORS, e.g. hosting, email, analytics]; users in [REGIONS].\n\nTASK\nWrite a privacy policy in plain English, under 1,200 words.\n\nSECTIONS\nWho we are; what we collect and why (table: data | purpose | legal basis | retention); who we share it with; international transfers; cookies; your rights and how to exercise them; children; security; changes; contact.\n\nRULES\n- Use only the facts provided; mark anything missing as [TO CONFIRM].\n- No vague phrases like \"we may share data with partners\"; name the category of processor.\n- Include a 5-line summary at the top.\n- End with a checklist of what a lawyer should verify for [REGIONS] (for example GDPR, CCPA).",
+  "score": 29
+ },
+ {
+  "domain": "business-plan",
+  "promptType": "planning",
+  "request": "one page business plan for a coffee cart",
+  "prompt": "ROLE\nYou are a small-business advisor who writes one-page plans that banks and partners can read in 3 minutes.\n\nBUSINESS\nA mobile coffee cart in [CITY], operating at [LOCATIONS/EVENTS], owner-operated.\n\nTASK\nWrite a one-page business plan.\n\nSECTIONS\n1. The opportunity in 2 sentences, with one local number (foot traffic, events per month) or [DATA NEEDED].\n2. Offer and pricing: 5 core items with price and estimated cost per cup.\n3. Customers: two segments and where to find them.\n4. Operations: permits, suppliers, hours, weather plan.\n5. Numbers: startup costs (itemised), monthly fixed costs, break-even cups per day, and a 12-month cash projection in a small table with conservative and expected cases.\n6. Risks: top 3 with mitigation.\n7. The ask: what funding or support is needed and what it buys.\n\nRULES\nShow the break-even calculation. Label every assumption. Fit on one page (about 550 words plus the table).",
+  "score": 29
+ },
+ {
+  "domain": "pitch-deck",
+  "promptType": "planning",
+  "request": "pitch deck outline for a seed round",
+  "prompt": "ROLE\nYou are a seed-stage investor who has seen 2,000 decks and helps founders tell a clear story.\n\nCOMPANY\n[NAME]: [WHAT IT DOES] for [WHO]. Stage: [TRACTION]. Raising [AMOUNT].\n\nTASK\nWrite a 12-slide pitch deck narrative.\n\nFOR EACH SLIDE\n- Title as a claim, not a label (\"Teams lose 6 hours a week to X\", not \"Problem\").\n- 3 bullets maximum, each under 12 words.\n- The one visual that proves the claim.\n- Speaker note: what to say in 20 seconds.\n\nSLIDES\nTitle; problem; why now; solution; demo moment; traction; market (bottom-up); business model; competition (2x2 with honest axes); team; use of funds with milestones; the ask.\n\nRULES\n- Every number is either provided or marked [DATA].\n- Flag the 3 slides an investor will challenge hardest and the question they will ask.",
+  "score": 29
+ },
+ {
+  "domain": "financial-analysis",
+  "promptType": "research",
+  "request": "analyze this company's income statement",
+  "prompt": "ROLE\nYou are an equity analyst explaining a company's financials to a smart non-specialist.\n\nINPUT\nI will paste 3 years of income statement data for [COMPANY].\n\nTASK\n1. Calculate for each year: revenue growth, gross margin, operating margin, net margin, and operating expenses as % of revenue by line.\n2. Present the results in a table with years as columns.\n3. Explain the 3 most important trends in plain language, with the number behind each.\n4. Identify 2 red flags and 2 strengths.\n5. List 5 questions you would ask management, ordered by importance.\n\nRULES\n- Show formulas for each ratio once.\n- Use only the numbers provided; if a line is missing, say so instead of estimating.\n- Round percentages to one decimal place.\n- Under 600 words plus the table. No investment recommendation.",
+  "score": 29
+ },
+ {
+  "domain": "daily-planning",
+  "promptType": "planning",
+  "request": "help me plan my day i have too much to do",
+  "prompt": "ROLE\nYou are a calm productivity coach who plans realistic days, not ideal ones.\n\nINPUT\nI will paste my task list, fixed meetings, and when I work best. Today I have [HOURS] hours of working time.\n\nTASK\n1. Ask nothing; work with what I give you and state assumptions.\n2. Sort tasks into: must today (consequence if not done), should, can wait. Explain each \"must\" in under 10 words.\n3. Estimate each task's time, then cut until planned work is at most 70% of available time.\n4. Build a time-blocked schedule: deep work in my best hours, shallow tasks batched, a 15-minute buffer after every 2 hours, and lunch.\n5. Name the one task that makes today a success if nothing else gets done.\n6. List what I am explicitly not doing today and who to tell.\n\nOUTPUT\nA schedule table (time | block | task | done-when), then the not-today list. Under 300 words.",
+  "score": 29
+ },
+ {
+  "domain": "decision-making",
+  "promptType": "planning",
+  "request": "should i take a new job offer",
+  "prompt": "ROLE\nYou are a decision coach who helps people make hard choices with structure, not cheerleading.\n\nINPUT\nI will describe my current job, the new offer, and my situation.\n\nTASK\n1. Restate the decision in one sentence and what a good outcome looks like in 2 years.\n2. List the criteria that matter to me (ask me to confirm weights 1 to 5 if I have not given them).\n3. Score both options on each criterion with a one-line reason; compute a weighted total.\n4. Run three checks: a pre-mortem (it is a year later and the choice failed, why?), the 10/10/10 test, and what I would advise a friend.\n5. Identify the one piece of information that would change the answer and how to get it this week.\n6. Give a recommendation with your confidence (low, medium, high) and why.\n\nRULES\nBe direct. Do not hide behind \"it depends\". Under 500 words plus the scoring table.",
+  "score": 29
+ },
+ {
+  "domain": "habit-building",
+  "promptType": "planning",
+  "request": "help me build a habit of exercising",
+  "prompt": "ROLE\nYou are a behaviour-change coach who designs habits that survive bad weeks.\n\nPERSON\nCurrently exercises [FREQUENCY]; available times [TIMES]; constraints [INJURIES, EQUIPMENT, BUDGET].\n\nTASK\nDesign a 6-week habit plan to exercise 3 times a week.\n\nINCLUDE\n1. The minimum version: a 10-minute session that counts on bad days.\n2. Cue, routine, reward for each session, tied to something already in the day.\n3. Week-by-week progression with exact sessions.\n4. Friction to remove tonight (3 concrete actions).\n5. A simple tracking method and the rule for a missed day (\"never miss twice\").\n6. What to do in week 3, when motivation usually drops.\n\nRULES\nSpecific times and actions, no generic advice like \"stay motivated\". Under 400 words plus a weekly table.",
+  "score": 29
+ },
+ {
+  "domain": "ux-copy",
+  "promptType": "writing",
+  "request": "error message copy for failed payment",
+  "prompt": "ROLE\nYou are a UX writer for a subscription app who writes interface copy that is clear, calm and useful.\n\nTASK\nWrite the copy for a failed payment at checkout.\n\nCOVER THESE CASES\nCard declined; insufficient funds; expired card; 3-D Secure failed; network error; unknown error.\n\nFOR EACH CASE\n- Title (under 6 words).\n- Body (under 25 words): what happened, in human words, and what to do next.\n- Primary button label (2 to 3 words) and secondary action.\n- Whether the user's cart is kept (always say so).\n\nRULES\n- Never blame the user. No \"Oops\", no exclamation marks, no error codes in the title.\n- Do not reveal the bank's decline reason when we do not know it.\n- Reading level around grade 6.\n- End with a short style note: voice rules used, so others can extend it.",
+  "score": 29
+ },
+ {
+  "domain": "brand-voice",
+  "promptType": "writing",
+  "request": "create a brand voice guide for my startup",
+  "prompt": "ROLE\nYou are a brand strategist who writes voice guides that writers can actually apply.\n\nCOMPANY\n[NAME], [WHAT IT DOES], for [AUDIENCE]. Personality words the founder likes: [3 WORDS].\n\nTASK\nWrite a one-page brand voice guide.\n\nSECTIONS\n1. Voice in one sentence.\n2. Three voice traits, each with: what it means, what it does not mean, and a do/don't example pair.\n3. Tone shifts: how the voice changes for a launch, an outage apology, an onboarding email, and a support reply (one example sentence each).\n4. Word list: 10 words we use, 10 we avoid, with replacements.\n5. Formatting rules: sentence length, contractions, emoji, exclamation marks, capitalisation.\n6. A before/after rewrite of one generic paragraph into our voice.\n\nRULES\nConcrete examples beat adjectives. Under 700 words.",
+  "score": 29
+ },
+ {
+  "domain": "job-description",
+  "promptType": "writing",
+  "request": "job description for a senior frontend engineer",
+  "prompt": "ROLE\nYou are a hiring manager who writes job descriptions that attract strong candidates and filter out poor fits.\n\nROLE BEING HIRED\nSenior Frontend Engineer at [COMPANY], [TEAM SIZE] engineers, stack [STACK], [REMOTE POLICY], salary [RANGE].\n\nTASK\nWrite the job description.\n\nSECTIONS\n1. Two-sentence pitch: what the team ships and why this role matters now.\n2. What you will do in the first 90 days (4 concrete bullets).\n3. What we need: 5 must-haves, each observable (not \"passionate\", not \"rockstar\").\n4. Nice to have: at most 3.\n5. What we offer: salary range, benefits, how we work.\n6. The hiring process: steps, total time, and what each step tests.\n\nRULES\n- Gender-neutral wording; no years-of-experience gate unless essential.\n- Under 450 words.\n- Add a line encouraging applicants who meet most but not all requirements.",
+  "score": 29
+ },
+ {
+  "domain": "performance-review",
+  "promptType": "writing",
+  "request": "write a performance review for an underperforming employee",
+  "prompt": "ROLE\nYou are an experienced engineering manager writing a fair, specific performance review.\n\nINPUT\nI will give you notes on the person's work this period, including examples.\n\nTASK\nWrite a review that is honest about underperformance and gives a clear path to improve.\n\nSTRUCTURE\n1. Summary: overall rating [RATING] and the two most important points.\n2. What went well: 2 specific examples with impact.\n3. Where expectations were not met: 2 to 3 behaviours, each with a dated example, the impact on the team, and the expected standard.\n4. Improvement plan: goals for the next 60 days, each measurable, with how and when we check progress.\n5. Support I will provide.\n\nRULES\n- Describe behaviour and outcomes, never personality.\n- No surprises: flag anything not discussed before so I can raise it first.\n- Neutral, respectful tone. Under 500 words.",
+  "score": 29
+ },
+ {
+  "domain": "course-outline",
+  "promptType": "planning",
+  "request": "outline for an online course on excel for beginners",
+  "prompt": "ROLE\nYou are an instructional designer who builds short practical courses for adult learners.\n\nCOURSE\nExcel for complete beginners who use it at work. 6 modules, about 20 minutes each, self-paced.\n\nTASK\nWrite the course outline.\n\nFOR EACH MODULE\n- Title and one learning outcome that starts with a verb the learner can demonstrate.\n- 3 to 4 lessons with one-line descriptions.\n- A practice task using a realistic work file (sales list, expenses, schedule).\n- A 3-question check with answers.\n\nALSO\n- Prerequisites (none beyond opening Excel).\n- A final project that uses skills from every module.\n- Common beginner mistakes to address explicitly.\n\nRULES\nOrder modules by what learners need first at work, not by menu order. Under 700 words.",
+  "score": 29
+ },
+ {
+  "domain": "study-plan",
+  "promptType": "planning",
+  "request": "study plan for an exam in 6 weeks",
+  "prompt": "ROLE\nYou are a study coach who builds plans based on spaced repetition and practice testing.\n\nSTUDENT\nExam: [EXAM] on [DATE]; topics [TOPIC LIST]; available study time [HOURS PER WEEKDAY] on weekdays and [HOURS] on weekends; weakest topics [WEAK].\n\nTASK\nBuild a 6-week study plan.\n\nINCLUDE\n1. Week 1 diagnostic: a practice test to rank topics by weakness.\n2. A weekly table: day | topic | method (active recall, practice questions, past papers) | minutes.\n3. Spaced reviews of each topic at increasing intervals.\n4. Full timed practice exams in weeks 4, 5 and 6.\n5. The last 3 days: what to review and what to stop doing.\n6. A rule for falling behind: what to cut first.\n\nRULES\nAt most 25% of time on re-reading or notes; the rest is retrieval and practice. Under 450 words plus the table.",
+  "score": 29
+ }
+]

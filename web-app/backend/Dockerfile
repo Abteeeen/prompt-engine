@@ -9,6 +9,7 @@ RUN npm ci --omit=dev --no-audit --no-fund
 COPY src ./src
 COPY migrations ./migrations
 COPY templates ./templates
+COPY seeds/exemplars.json ./seeds/exemplars.json
 
 EXPOSE 3001
 USER node

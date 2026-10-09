@@ -1,26 +1,4 @@
-import type {
-  Template,
-  FormStructure,
-  GenerateResult,
-  SearchResult,
-  FormData,
-  AuthResponse,
-  MeResponse,
-  Usage,
-  GenerationResult,
-  OptimizeResult,
-  RefinePayload,
-  GenerationRecord,
-  LibraryPromptSummary,
-  LibraryPrompt,
-  CreatePromptInput,
-  UpdatePromptInput,
-  PromptRating,
-  Profile,
-  ProfileInput,
-  FeedbackInput,
-  ApiErrorBody,
-} from '../types'
+import type { Template, FormStructure, GenerateResult, SearchResult, FormData, AuthResponse, MeResponse, Usage, GenerationResult, OptimizeResult, RefinePayload, GenerationRecord, LibraryPromptSummary, LibraryPrompt, CreatePromptInput, UpdatePromptInput, PromptRating, Profile, ProfileInput, FeedbackInput, ApiErrorBody, GenerationSignal, User } from '../types'
 
 export const API_URL = import.meta.env.VITE_API_URL || ''
 const BASE = `${API_URL}/api`
@@ -158,6 +136,8 @@ export const api = {
     me: () => request<MeResponse>('/auth/me'),
     logout: () => request<{ success: boolean }>('/auth/logout', { method: 'POST' }),
     deleteAccount: () => request<{ success: boolean }>('/auth/account', { method: 'DELETE' }),
+    setPreferences: (prefs: { share_examples: boolean }) =>
+      request<{ user: User }>('/auth/preferences', { method: 'PUT', body: prefs }),
   },
 
   usage: {
@@ -195,6 +175,10 @@ export const api = {
 
   generations: {
     list: (limit = 50) => request<GenerationRecord[]>(`/generations?limit=${limit}`),
+    /** Fire-and-forget feedback that teaches the knowledge base. Never throws. */
+    signal: (id: string, signal: GenerationSignal) => {
+      request<{ success: boolean }>(`/generations/${encodeURIComponent(id)}/signal`, { method: 'POST', body: { signal } }).catch(() => {})
+    },
   },
 
   library: {

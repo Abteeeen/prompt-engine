@@ -10,7 +10,8 @@
     "migrate": "node src/models/migrate.js",
     "migrate:status": "node src/models/migrate.js --status",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "eval": "node scripts/eval.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

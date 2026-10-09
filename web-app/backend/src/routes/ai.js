@@ -7,6 +7,7 @@ import { trackEvent } from '../services/AnalyticsService.js';
 import { enforceQuota, recordUsage } from '../services/QuotaService.js';
 import { buildContextBlock } from '../services/ProfileService.js';
 import { recordGeneration } from '../services/GenerationsService.js';
+import { retrieveContext } from '../services/KnowledgeService.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { asyncHandler, HttpError } from '../middleware/asyncHandler.js';
 import { validate } from '../middleware/validate.js';
@@ -15,11 +16,14 @@ import logger from '../utils/logger.js';
 
 const router = Router();
 
+/** Retrieval hook bound to the current user (personal library + shared knowledge base). */
+const retrieverFor = (req) => ({ request, domain }) => retrieveContext({ request, domain, userId: req.user?.id || null });
+
 const requestField = z.string().trim().min(5, 'Describe what you need in at least 5 characters.').max(config.MAX_REQUEST_CHARS);
 
 /** Strip the model-facing pieces the client does not need. */
 function toResponse(result, id, usage) {
-  const { tokenUsage, ...rest } = result;
+  const { tokenUsage, exemplarIds, ...rest } = result;
   return { id, ...rest, qualityScore: result.qualityScore || scorePrompt(result.prompt), usage };
 }
 
@@ -43,7 +47,7 @@ router.post('/generate',
       : req.body.request;
 
     const contextBlock = await buildContextBlock(req.user?.id);
-    const result = await generateWithAI(userRequest, { contextBlock });
+    const result = await generateWithAI(userRequest, { contextBlock, retrieve: retrieverFor(req) });
     failIfFallback(result);
     result.qualityScore = result.qualityScore || scorePrompt(result.prompt);
 
@@ -69,7 +73,7 @@ router.post('/refine',
   asyncHandler(async (req, res) => {
     await enforceQuota(req);
     const contextBlock = await buildContextBlock(req.user?.id);
-    const result = await refineWithAnswers({ ...req.body, contextBlock });
+    const result = await refineWithAnswers({ ...req.body, contextBlock, retrieve: retrieverFor(req) });
     failIfFallback(result);
     result.qualityScore = result.qualityScore || scorePrompt(result.prompt);
 
@@ -86,7 +90,7 @@ router.post('/optimize',
   asyncHandler(async (req, res) => {
     await enforceQuota(req);
     const contextBlock = await buildContextBlock(req.user?.id);
-    const result = await generateOptimizedPrompt(req.body.request, { contextBlock });
+    const result = await generateOptimizedPrompt(req.body.request, { contextBlock, retrieve: retrieverFor(req) });
     const usage = await recordUsage(req, (result.tokenUsage?.prompt_tokens || 0) + (result.tokenUsage?.completion_tokens || 0));
     const id = await recordGeneration({ req, kind: 'optimize', request: req.body.request,
       result: { prompt: result.optimized, qualityScore: result.qualityScore, issues: result.issues, pipeline: result.pipeline, source: result.provider, model: result.model, refinements: result.refinements, tokenUsage: result.tokenUsage } });

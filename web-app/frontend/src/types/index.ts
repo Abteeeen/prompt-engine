@@ -96,8 +96,12 @@ export interface User {
   email: string
   avatar_url: string | null
   plan: 'free' | 'pro'
+  /** Whether anonymised high-rated prompts may join the shared knowledge base. */
+  share_examples?: boolean
   created_at: string
 }
+
+export type GenerationSignal = 'copied' | 'opened' | 'saved' | 'up' | 'down'
 
 export interface AuthResponse {
   token: string

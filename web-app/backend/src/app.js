@@ -21,6 +21,7 @@ import profileRoutes from './routes/profile.js';
 import feedbackRoutes from './routes/feedback.js';
 import analyticsRoutes from './routes/analytics.js';
 import aiRoutes from './routes/ai.js';
+import adminRoutes from './routes/admin.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -85,6 +86,7 @@ app.use('/api/feedback',      writeLimiter,    feedbackRoutes);
 app.use('/api/analytics',     publicLimiter,   analyticsRoutes);
 app.use('/api/prompts',       writeLimiter,    promptRoutes);
 app.use('/api/ai',            generateLimiter, aiRoutes);
+app.use('/api/admin',         publicLimiter,   adminRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

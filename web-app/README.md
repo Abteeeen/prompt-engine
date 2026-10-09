@@ -82,6 +82,28 @@ exhausted keys cool down (per-minute, daily, credits, dead), and the next provid
 `LLM_PROVIDER_ORDER` takes over. One account per provider; hop across providers, never across
 accounts on the same provider. `GET /api/ai/providers` (admin) shows live state.
 
+## The knowledge base (how results get better over time)
+
+Every generation retrieves up to two proven prompts and shows them to the drafter as models
+of specificity and structure:
+
+1. **Curated seeds**: 30 hand-written expert prompts, one per template domain
+   (`backend/seeds/exemplars.py` → `exemplars.json`), loaded on every boot.
+2. **Proven user prompts**: a generation joins the shared pool only when someone copies it,
+   opens it in ChatGPT/Claude, saves it or marks it helpful, **and** the critic scored it at least
+   `RAG_PROMOTE_MIN_SCORE` (26/30). Emails, phone numbers, links and long numbers are scrubbed
+   first. "Not helpful" demotes it. Users can opt out in Settings, which also withdraws past
+   contributions.
+3. **The user's own best**: their top-rated or favourite library prompts, private to them.
+
+Retrieval fuses Postgres full-text search (always on, free) with vector search when pgvector is
+available (Supabase has it) and an embedding provider is configured (Cloudflare `bge-m3`
+recommended, Gemini, or any OpenAI-compatible endpoint). Without one, keyword search is used.
+
+Measure it: `npm run eval` runs ten fixed requests with and without retrieval and compares the
+critic's scores. Curate it: `GET/POST/PATCH /api/admin/knowledge/exemplars` (admin only), and
+`GET /api/admin/knowledge` shows pool size and average scores with and without examples.
+
 ## API
 
 See `backend/src/app.js` for the route table. Errors are `{ error, code?, requestId }`.

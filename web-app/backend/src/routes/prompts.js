@@ -10,6 +10,7 @@ import { query, pool, hasDatabase } from '../models/database.js';
 import { enforceQuota, recordUsage } from '../services/QuotaService.js';
 import { recordGeneration } from '../services/GenerationsService.js';
 import { config } from '../config.js';
+import { recordSignal } from '../services/KnowledgeService.js';
 
 const router = Router();
 const uuid = z.string().uuid();
@@ -105,6 +106,7 @@ router.post('/', requireAuth,
       await client.query(`UPDATE prompts SET current_version_id = $2 WHERE id = $1`, [p.rows[0].id, v.rows[0].id]);
       await client.query('COMMIT');
       trackEvent({ eventType: 'prompt_saved', templateId: domain, userId: req.user.id, qualityScore: score });
+      if (generationId) recordSignal({ generationId, signal: 'saved', userId: req.user.id }).catch(() => {});
       res.status(201).json(await loadDetail(req.user.id, p.rows[0].id));
     } catch (err) {
       await client.query('ROLLBACK');
@@ -173,10 +175,12 @@ router.post('/:id/rate', requireAuth,
   }) }),
   asyncHandler(async (req, res) => {
     needDb();
-    const r = await query(`UPDATE prompts SET rating = $3, rating_reason = $4 WHERE id = $1 AND user_id = $2 RETURNING id`,
+    const r = await query(`UPDATE prompts SET rating = $3, rating_reason = $4 WHERE id = $1 AND user_id = $2 RETURNING id, source_generation`,
       [req.params.id, req.user.id, req.body.rating, req.body.reason || null]);
     if (!r.rowCount) throw new HttpError(404, 'Prompt not found.', 'NOT_FOUND');
     trackEvent({ eventType: 'prompt_rated', userId: req.user.id, metadata: { rating: req.body.rating, reason: req.body.reason } });
+    const gen = r.rows[0].source_generation;
+    if (gen && req.body.rating !== 0) recordSignal({ generationId: gen, signal: req.body.rating > 0 ? 'up' : 'down', userId: req.user.id }).catch(() => {});
     res.json({ success: true });
   })
 );

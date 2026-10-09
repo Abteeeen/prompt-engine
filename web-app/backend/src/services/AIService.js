@@ -783,7 +783,7 @@ function buildDrafterInput(userRequest, analysis, ragContext = '', contextBlock 
 
   if (contextBlock) lines.push(`\n${contextBlock}\nUse these facts directly in the prompt (voice, claims, audience, constraints). Never contradict them.`);
   if (previousPrompt) lines.push(`\nPREVIOUS DRAFT (the user has now answered questions about it; keep what works, change only what the new facts affect):\n"""\n${previousPrompt.slice(0, 6000)}\n"""`);
-  if (ragContext) lines.push(`\nSUCCESSFUL EXAMPLE PROMPTS (structural inspiration only, do not copy content):\n${ragContext}`);
+  if (ragContext) lines.push(`\nSUCCESSFUL EXAMPLE PROMPTS for similar requests. These scored highly with real users. Match their level of specificity, structure and constraint style. Do not copy their subject matter, names or numbers; [BRACKETS] in them are placeholders, not facts:\n${ragContext}`);
 
   lines.push(`\nREQUIREMENTS FOR YOUR OUTPUT:
 1. Define the ROLE with real expertise, not a generic "expert".
@@ -884,7 +884,7 @@ function qualityFromRubric(rubric, method) {
  * @param {string[]} [options.knownFacts]     answered clarifying questions, "Q: ... A: ..." lines
  * @param {string}   [options.previousPrompt] the draft the user is refining
  */
-export async function generateWithAI(userRequest, { contextBlock = '', knownFacts = [], previousPrompt = '' } = {}) {
+export async function generateWithAI(userRequest, { contextBlock = '', knownFacts = [], previousPrompt = '', retrieve = null } = {}) {
   const tally = { prompt_tokens: 0, completion_tokens: 0, calls: 0 };
   if (knownFacts.length) {
     contextBlock = `${contextBlock ? contextBlock + '\n\n' : ''}ANSWERS THE USER GAVE TO CLARIFYING QUESTIONS (ground truth):\n- ${knownFacts.join('\n- ')}`;
@@ -936,6 +936,17 @@ export async function generateWithAI(userRequest, { contextBlock = '', knownFact
   const analysis = await analyzeRequest(userRequest, webContext, contextBlock, tally);
   if (analysis.model) modelsUsed.push(analysis.model);
 
+  // ── Retrieval: proven prompts for this domain (shared knowledge base + the user's own best) ──
+  let exemplarsUsed = [];
+  if (typeof retrieve === 'function') {
+    try {
+      const r = await retrieve({ request: userRequest, domain: analysis.domain, promptType: analysis.promptType });
+      if (r?.text) { ragContext = r.text; exemplarsUsed = r.used || []; }
+    } catch (err) {
+      logger.warn('Retrieval hook failed', { error: err.message });
+    }
+  }
+
   // ── Stage 2: Drafter ──────────────────────────────────────────────────────
   let draftText = '';
   try {
@@ -980,6 +991,8 @@ export async function generateWithAI(userRequest, { contextBlock = '', knownFact
     qualityScore,                      // null when the critic could not run; the route falls back to heuristics
     issues: refined.rubric?.issues || [],
     refinements: refined.refinements,
+    exemplarsUsed: exemplarsUsed.length,
+    exemplarIds: exemplarsUsed,
     tokenUsage: tally,
     latencyMs: Date.now() - startedAt,
   };
@@ -988,15 +1001,15 @@ export async function generateWithAI(userRequest, { contextBlock = '', knownFact
 /**
  * Re-run the pipeline with the user's answers to the clarifying questions folded in as facts.
  */
-export async function refineWithAnswers({ request, prompt = '', answers = [], contextBlock = '' }) {
+export async function refineWithAnswers({ request, prompt = '', answers = [], contextBlock = '', retrieve = null }) {
   const knownFacts = answers
     .filter(a => a && a.answer && a.answer.trim())
     .map(a => `Q: ${String(a.question).trim()}  A: ${String(a.answer).trim()}`);
-  return generateWithAI(request, { contextBlock, knownFacts, previousPrompt: prompt });
+  return generateWithAI(request, { contextBlock, knownFacts, previousPrompt: prompt, retrieve });
 }
 
 // ── Autonomous Optimization: critique → rewrite loop on an existing prompt ──
-export async function generateOptimizedPrompt(userRequest, { contextBlock = '' } = {}) {
+export async function generateOptimizedPrompt(userRequest, { contextBlock = '', retrieve = null } = {}) {
   if (configuredProviders().length === 0) {
     throw new Error('No LLM provider configured.');
   }
@@ -1009,7 +1022,11 @@ export async function generateOptimizedPrompt(userRequest, { contextBlock = '' }
   let base = userRequest;
   const looksLikePrompt = userRequest.length > 200 || /\b(you are|role|task|requirements|constraints|output format)\b/i.test(userRequest);
   if (!looksLikePrompt) {
-    const draft = await chatResilient(buildSystemPrompt(analysis.domain, analysis.promptType), buildDrafterInput(userRequest, analysis, '', contextBlock), { role: 'OPTIMIZER', maxTokens: 2500, tally });
+    let examples = '';
+    if (typeof retrieve === 'function') {
+      try { examples = (await retrieve({ request: userRequest, domain: analysis.domain }))?.text || ''; } catch { examples = ''; }
+    }
+    const draft = await chatResilient(buildSystemPrompt(analysis.domain, analysis.promptType), buildDrafterInput(userRequest, analysis, examples, contextBlock), { role: 'OPTIMIZER', maxTokens: 2500, tally });
     base = draft.text;
     modelsUsed.push(`${draft.provider}:${draft.model}`);
   }

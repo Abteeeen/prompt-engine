@@ -5,6 +5,8 @@ import { hasDatabase, testConnection, closeDatabase } from './models/database.js
 import { runMigrations } from './models/migrate.js';
 import { loadTemplates } from './services/TemplateService.js';
 import { configuredProviders } from './services/llm/providers.js';
+import { seedExemplars } from './services/KnowledgeService.js';
+import { embeddingModelId } from './services/llm/embeddings.js';
 import logger from './utils/logger.js';
 
 async function start() {
@@ -18,6 +20,11 @@ async function start() {
     }
   } else {
     logger.warn('DATABASE_URL not set: running without a database (sign-in, library and history disabled; quotas kept in memory)');
+  }
+
+  if (hasDatabase) {
+    await seedExemplars().catch(err => logger.warn('Seeding exemplars failed', { error: err.message }));
+    logger.info(`Retrieval: keyword search${embeddingModelId() ? ` + vectors (${embeddingModelId()})` : ' only (set CF_ACCOUNT_ID/CF_API_TOKEN or GEMINI_API_KEY for semantic search)'}`);
   }
 
   const templates = loadTemplates();

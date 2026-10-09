@@ -13,8 +13,8 @@ export async function recordGeneration({ req, kind = 'generate', request, result
     const r = await query(
       `INSERT INTO generations
          (user_id, session_id, kind, request, prompt, domain, prompt_type, quality_score, score_method,
-          analysis, issues, pipeline, provider, model, refinements, tokens_in, tokens_out, latency_ms, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+          analysis, issues, pipeline, provider, model, refinements, tokens_in, tokens_out, latency_ms, status, exemplars_used)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
        RETURNING id`,
       [
         req.user?.id || null, sid, kind, request.slice(0, 8000), result?.prompt || null,
@@ -25,6 +25,7 @@ export async function recordGeneration({ req, kind = 'generate', request, result
         result?.pipeline ? JSON.stringify(result.pipeline) : null,
         result?.source || null, result?.model || null, result?.refinements || 0,
         usage.prompt_tokens ?? null, usage.completion_tokens ?? null, result?.latencyMs ?? null, status,
+        result?.exemplarsUsed ?? 0,
       ]
     );
     return r.rows[0].id;
