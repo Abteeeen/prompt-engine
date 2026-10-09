@@ -1,5 +1,6 @@
 import React from 'react'
 import { Header } from './Header'
+import { Footer } from './Footer'
 import { FeedbackWidget } from '../FeedbackWidget'
 import { ParticleMeshBg } from '../ParticleMeshBg'
 
@@ -14,8 +15,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="absolute -bottom-40 left-1/3 w-96 h-96 bg-cyan-600/5 rounded-full blur-3xl" />
       </div>
       <Header />
-      <main className="pt-4 md:pt-20 relative z-10">{children}</main>
-      <FeedbackWidget />
+      <main className="pt-14 md:pt-20 relative z-10">{children}</main>
+      {/* Bottom padding keeps the mobile nav from covering the footer */}
+      <div className="relative z-10 pb-24 md:pb-0">
+        <FeedbackWidget />
+        <Footer />
+      </div>
     </div>
   )
 }

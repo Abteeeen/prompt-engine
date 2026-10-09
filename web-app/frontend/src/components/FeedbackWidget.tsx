@@ -1,50 +1,74 @@
-import React, { useState } from 'react'
-import { api } from '../services/api'
+import React, { useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
+import { api, errorMessage } from '../services/api'
 import { Button } from './ui/Button'
 
-const FACES = [
-  { key: 'very_happy', label: '😊' },
-  { key: 'happy', label: '🙂' },
-  { key: 'neutral', label: '😐' },
-  { key: 'unhappy', label: '🙁' },
-  { key: 'sad', label: '😢' },
-] as const
+export const OPEN_FEEDBACK_EVENT = 'pe:open-feedback'
+
+/** Opens the feedback widget from anywhere (e.g. the footer link). */
+export function openFeedback() {
+  window.dispatchEvent(new CustomEvent(OPEN_FEEDBACK_EVENT))
+}
+
+const MOODS: { key: number; label: string; title: string }[] = [
+  { key: 5, label: ':D', title: 'Love it' },
+  { key: 4, label: ':)', title: 'Good' },
+  { key: 3, label: ':|', title: 'Okay' },
+  { key: 2, label: ':(', title: 'Not great' },
+  { key: 1, label: ":'(", title: 'Frustrating' },
+]
 
 export function FeedbackWidget() {
+  const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
-  const [feedback, setFeedback] = useState('')
-  const [context, setContext] = useState('')
+  const [message, setMessage] = useState('')
   const [email, setEmail] = useState('')
-  const [mood, setMood] = useState<string | null>(null)
+  const [rating, setRating] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = () => {
+      setOpen(true)
+      setSent(false)
+      setError('')
+      // On mobile the widget is inline near the bottom; bring it into view.
+      setTimeout(() => rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
+    }
+    window.addEventListener(OPEN_FEEDBACK_EVENT, handler)
+    return () => window.removeEventListener(OPEN_FEEDBACK_EVENT, handler)
+  }, [])
 
   const handleSubmit = async () => {
-    if (!feedback.trim()) return
+    if (!message.trim()) return
     setSubmitting(true)
+    setError('')
     try {
-      api.analytics.track('feedback_submitted', undefined, {
-        feedback,
-        context,
-        email: email || null,
-        mood,
+      await api.feedback.send({
+        message: message.trim(),
+        email: email.trim() || undefined,
+        page: pathname,
+        rating: rating ?? undefined,
       })
       setSent(true)
-      setFeedback('')
-      setContext('')
+      setMessage('')
       setEmail('')
-      setMood(null)
+      setRating(null)
       setTimeout(() => {
         setSent(false)
         setOpen(false)
       }, 2000)
+    } catch (err) {
+      setError(errorMessage(err, 'Could not send feedback. Please try again.'))
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="z-40 flex justify-center w-full md:w-auto md:fixed md:bottom-4 md:right-4 mt-8 mb-24 md:mt-0 md:mb-0">
+    <div ref={rootRef} className="z-40 flex justify-center w-full md:w-auto md:fixed md:bottom-4 md:right-4 mt-8 md:mt-0">
       {!open && (
         <Button
           variant="secondary"
@@ -57,7 +81,7 @@ export function FeedbackWidget() {
       )}
 
       {open && (
-        <div className="glass w-80 max-w-[90vw] rounded-2xl p-4 text-xs shadow-2xl border border-white/15">
+        <div className="glass w-80 max-w-[calc(100vw-32px)] rounded-2xl p-4 text-xs shadow-2xl border border-white/15">
           <div className="flex items-start justify-between mb-2">
             <div>
               <p className="text-[11px] font-bold text-purple-300 uppercase tracking-widest">Your feedback</p>
@@ -67,77 +91,75 @@ export function FeedbackWidget() {
               type="button"
               onClick={() => setOpen(false)}
               className="text-gray-500 hover:text-gray-300 text-xs"
+              aria-label="Close feedback"
             >
-              ✕
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
             </button>
           </div>
 
-          <div className="space-y-2">
-            <div>
-              <textarea
-                value={feedback}
-                onChange={e => setFeedback(e.target.value.slice(0, 5000))}
-                placeholder="Tell us what's on your mind..."
-                rows={3}
-                className="w-full input-base text-xs bg-white/5 border-white/15"
-              />
-              <div className="text-[10px] text-gray-500 text-right mt-0.5">{feedback.length}/5000</div>
+          {sent ? (
+            <div className="py-6 text-center">
+              <p className="text-sm font-semibold text-emerald-400">Thank you!</p>
+              <p className="text-[11px] text-gray-500 mt-1">We read every message.</p>
             </div>
+          ) : (
+            <div className="space-y-2">
+              <div>
+                <textarea
+                  value={message}
+                  onChange={e => setMessage(e.target.value.slice(0, 5000))}
+                  placeholder="What's on your mind? Bugs, ideas, anything."
+                  rows={3}
+                  className="w-full input-base text-xs bg-white/5 border-white/15"
+                />
+                <div className="text-[10px] text-gray-500 text-right mt-0.5">{message.length}/5000</div>
+              </div>
 
-            <div>
-              <textarea
-                value={context}
-                onChange={e => setContext(e.target.value.slice(0, 500))}
-                placeholder="What were you trying to do? (optional)"
-                rows={2}
-                className="w-full input-base text-xs bg-white/3 border-white/10"
-              />
-              <div className="text-[10px] text-gray-500 text-right mt-0.5">{context.length}/500</div>
-            </div>
-
-            <div className="flex items-center gap-2">
               <input
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="Email (optional)"
-                className="flex-1 input-base text-xs bg-white/3 border-white/10"
+                placeholder="Email (optional, if you want a reply)"
+                type="email"
+                className="w-full input-base text-xs bg-white/3 border-white/10"
               />
-            </div>
 
-            <div>
-              <p className="text-[11px] text-gray-500 mb-1">How satisfied are you? (optional)</p>
-              <div className="flex gap-1.5">
-                {FACES.map(face => (
-                  <button
-                    key={face.key}
-                    type="button"
-                    onClick={() => setMood(face.key)}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-base transition-all ${
-                      mood === face.key ? 'bg-white/20' : 'bg-white/5 hover:bg-white/10'
-                    }`}
-                  >
-                    {face.label}
-                  </button>
-                ))}
+              <div>
+                <p className="text-[11px] text-gray-500 mb-1">How satisfied are you? (optional)</p>
+                <div className="flex gap-1.5">
+                  {MOODS.map(m => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      title={m.title}
+                      onClick={() => setRating(rating === m.key ? null : m.key)}
+                      className={`h-7 px-2 rounded-full flex items-center justify-center text-[11px] font-mono font-bold transition-all ${
+                        rating === m.key ? 'bg-purple-500/30 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {error && <p className="text-[11px] text-red-400">{error}</p>}
+
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[10px] text-gray-600">We read every message.</span>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  loading={submitting}
+                  disabled={!message.trim()}
+                  onClick={handleSubmit}
+                >
+                  Send
+                </Button>
               </div>
             </div>
-
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[10px] text-gray-600">We read every message.</span>
-              <Button
-                variant="primary"
-                size="sm"
-                loading={submitting}
-                disabled={!feedback.trim()}
-                onClick={handleSubmit}
-              >
-                {sent ? 'Thank you!' : 'Send'}
-              </Button>
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>
   )
 }
-

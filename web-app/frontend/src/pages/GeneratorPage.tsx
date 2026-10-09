@@ -1,28 +1,25 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { GoogleLogin } from '@react-oauth/google'
-import { api } from '../services/api'
+import { api, errorMessage, isQuotaError } from '../services/api'
 import type { Template, FormStructure, GenerateResult, FormData } from '../types'
-import { PromptCard } from '../components/PromptCard'
 import { DynamicForm } from '../components/DynamicForm'
 import { PromptDisplay } from '../components/PromptDisplay'
 import { Button } from '../components/ui/Button'
-import { ArenaModal } from '../components/ArenaModal'
+import { QuotaBadge, QuotaNotice } from '../components/Quota'
+import { useAuth } from '../context/AuthContext'
+import { usePageTitle } from '../hooks/usePageTitle'
+import { SparkleIcon, ThumbsDownIcon, ThumbsUpIcon, Spinner } from '../components/ui/Icons'
 
 type Mode = 'quick' | 'standard' | 'advanced'
 
 function TemplateSelector({ templates, selected, onSelect }: { templates: Template[]; selected: string | null; onSelect: (id: string) => void }) {
   const [search, setSearch] = useState('')
-  const shown = search ? templates.filter(t => t.name.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase())) : templates
+  const q = search.trim().toLowerCase()
+  const shown = q ? templates.filter(t => t.name.toLowerCase().includes(q) || t.category.toLowerCase().includes(q)) : templates
 
   return (
     <div>
-      <input
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        placeholder="Filter prompts..."
-        className="input-base mb-4"
-      />
+      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filter templates..." className="input-base mb-4" aria-label="Filter templates" />
       <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
         {shown.map(t => (
           <button
@@ -38,60 +35,81 @@ function TemplateSelector({ templates, selected, onSelect }: { templates: Templa
             <span className="text-xs text-gray-600 shrink-0">{t.qualityScore}/30</span>
           </button>
         ))}
+        {shown.length === 0 && <p className="text-xs text-gray-500 py-6 text-center">No templates match “{search}”.</p>}
       </div>
     </div>
   )
 }
 
-export function GeneratorPage() {
+export default function GeneratorPage() {
+  usePageTitle('Generate')
+  const { applyUsage } = useAuth()
   const [searchParams] = useSearchParams()
   const preselect = searchParams.get('template')
 
-  const [templates, setTemplates]   = useState<Template[]>([])
-  const [selected, setSelected]     = useState<string | null>(preselect)
-  const [form, setForm]             = useState<FormStructure | null>(null)
-  const [formData, setFormData]     = useState<FormData>({})
-  const [mode, setMode]             = useState<Mode>('standard')
-  const [result, setResult]         = useState<GenerateResult | null>(null)
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [templatesError, setTemplatesError] = useState('')
+  const [loadingTemplates, setLoadingTemplates] = useState(true)
+  const [selected, setSelected] = useState<string | null>(preselect)
+  const [form, setForm] = useState<FormStructure | null>(null)
+  const [formError, setFormError] = useState('')
+  const [formData, setFormData] = useState<FormData>({})
+  const [mode, setMode] = useState<Mode>('standard')
+  const [result, setResult] = useState<GenerateResult | null>(null)
+  const [resultKey, setResultKey] = useState(0)
   const [outputState, setOutputState] = useState<{ selectedIndex: number; editedText: string } | null>(null)
   const [generating, setGenerating] = useState(false)
-  const [error, setError]           = useState('')
+  const [error, setError] = useState('')
+  const [quotaMessage, setQuotaMessage] = useState('')
   const [loadingForm, setLoadingForm] = useState(false)
   const [isOptimizing, setIsOptimizing] = useState(false)
-  const [arenaResults, setArenaResults] = useState<{ results: any[]; jury: any } | null>(null)
-  const [isArenaModalOpen, setIsArenaModalOpen] = useState(false)
-  
-  // Quota specific state
-  const [quotaExceeded, setQuotaExceeded] = useState(false)
-  const [remainingTries, setRemainingTries] = useState<number | string | null>(null)
-  const [usedTries, setUsedTries] = useState<number>(0)
-  const [limitTries, setLimitTries] = useState<number>(15)
+  const [notice, setNotice] = useState('')
+  const [rated, setRated] = useState<'good' | 'bad' | null>(null)
 
+  const selectedTemplate = useMemo(() => templates.find(t => t.id === selected) ?? null, [templates, selected])
   const filledCount = form ? form.fields.filter(f => formData[f.name]?.trim()).length : 0
   const requiredCount = form ? form.fields.filter(f => f.required).length : 0
-  const canGenerate = selected && form && filledCount >= Math.min(requiredCount, 2)
+  const canGenerate = !!selected && !!form && filledCount >= Math.min(requiredCount, 2)
+
+  const loadTemplates = useCallback(() => {
+    setLoadingTemplates(true)
+    setTemplatesError('')
+    api.templates
+      .list()
+      .then(setTemplates)
+      .catch(err => setTemplatesError(errorMessage(err, 'Could not load templates.')))
+      .finally(() => setLoadingTemplates(false))
+  }, [])
 
   useEffect(() => {
-    api.templates.list().then(setTemplates)
+    loadTemplates()
     api.analytics.track('page_view', undefined, { page: 'generator' })
-    
-    // Initial quota check
-    api.prompts.getQuota().then(q => {
-      setRemainingTries(q.remaining)
-      setUsedTries(q.totalUsed)
-      setLimitTries(q.limit)
-    })
-  }, [])
+  }, [loadTemplates])
 
   // Load form when template or mode changes
   useEffect(() => {
     if (!selected) return
+    let cancelled = false
     setLoadingForm(true)
+    setFormError('')
     setFormData({})
     setResult(null)
-    api.forms.get(selected, mode)
-      .then(f => { setForm(f); setLoadingForm(false) })
-      .catch(() => setLoadingForm(false))
+    setRated(null)
+    setNotice('')
+    api.forms
+      .get(selected, mode)
+      .then(f => {
+        if (!cancelled) setForm(f)
+      })
+      .catch(err => {
+        if (!cancelled) setFormError(errorMessage(err, 'Could not load this template’s form.'))
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingForm(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [selected, mode])
 
   const handleFieldChange = useCallback((name: string, value: string) => {
@@ -102,15 +120,16 @@ export function GeneratorPage() {
     if (!selected || !form) return
     setGenerating(true)
     setError('')
-    setQuotaExceeded(false)
+    setQuotaMessage('')
+    setNotice('')
+    setRated(null)
     try {
-      const res = await api.prompts.generate(selected, formData) as any;
+      const res = await api.templates.fill(selected, formData)
       setResult(res)
-      if (res.quota) {
-        setRemainingTries(res.quota.remaining)
-        setUsedTries(res.quota.totalUsed)
-      }
-      setOutputState({ selectedIndex: 0, editedText: res.variations[0].text })
+      setResultKey(k => k + 1)
+      applyUsage(res.usage)
+      const first = res.variations[0]?.text ?? res.prompt
+      setOutputState({ selectedIndex: 0, editedText: first })
       api.analytics.track('prompt_generated', selected, {
         qualityScore: res.qualityScore.overallScore,
         mode,
@@ -118,12 +137,12 @@ export function GeneratorPage() {
         requiredCount,
         promptLength: res.prompt.length,
       })
-    } catch (err: any) {
-      if (err.status === 429) {
-        setQuotaExceeded(true)
-        setError(err.message || 'Daily limit reached. Please sign in to continue.')
+    } catch (err) {
+      if (isQuotaError(err)) {
+        applyUsage(err.usage)
+        setQuotaMessage(err.message)
       } else {
-        setError(err.message || 'Generation failed')
+        setError(errorMessage(err, 'Generation failed'))
       }
     } finally {
       setGenerating(false)
@@ -131,121 +150,71 @@ export function GeneratorPage() {
   }
 
   const handleOptimize = async () => {
-    // Collect all form data values and optimize them into a better topic
-    const rawContext = Object.values(formData).filter(v => v).join('; ')
+    const rawContext = Object.values(formData).filter(Boolean).join('; ')
     if (!rawContext) {
-      setError('Please fill some parts of the form first so I have something to optimize.')
+      setError('Fill in a few fields first so there is something to optimize.')
       return
     }
-
     setIsOptimizing(true)
     setError('')
+    setNotice('')
     try {
       const data = await api.ai.optimize(rawContext)
-      // We can't easily map optimized results back to individual fields, 
-      // but we can put it in the most significant field (usually 'topic' or 'desc')
-      const targetField = form?.fields[0].name || 'topic'
+      applyUsage(data.usage)
+      const targetField = form?.fields[0]?.name || 'topic'
       setFormData(prev => ({ ...prev, [targetField]: data.optimized }))
-      alert('Prompt logic optimized! Check the form fields.')
-    } catch (err: any) {
-      setError('Optimization failed: ' + err.message)
+      setNotice(`Optimized input placed in “${form?.fields[0]?.label || targetField}”. Review it, then generate.`)
+    } catch (err) {
+      if (isQuotaError(err)) {
+        applyUsage(err.usage)
+        setQuotaMessage(err.message)
+      } else {
+        setError(`Optimization failed: ${errorMessage(err)}`)
+      }
     } finally {
       setIsOptimizing(false)
     }
   }
 
   const handleResultOptimize = async (text: string) => {
+    if (!result) return
     setIsOptimizing(true)
+    setError('')
     try {
       const data = await api.ai.optimize(text)
-      setOutputState(prev => prev ? { ...prev, editedText: data.optimized } : null)
-      alert('Prompt optimized! The text has been updated.')
-    } catch (err: any) {
-      setError('Optimization failed: ' + err.message)
+      applyUsage(data.usage)
+      const idx = outputState?.selectedIndex ?? 0
+      const variations = result.variations.map((v, i) => (i === idx ? { ...v, text: data.optimized } : v))
+      setResult({ ...result, variations, prompt: idx === 0 ? data.optimized : result.prompt })
+      setResultKey(k => k + 1)
+      setOutputState({ selectedIndex: idx, editedText: data.optimized })
+    } catch (err) {
+      if (isQuotaError(err)) {
+        applyUsage(err.usage)
+        setQuotaMessage(err.message)
+      } else {
+        setError(`Optimization failed: ${errorMessage(err)}`)
+      }
     } finally {
       setIsOptimizing(false)
     }
   }
 
-  const handleResultArena = async (text: string) => {
-    setGenerating(true)
-    try {
-      const data = await api.ai.arena(text)
-      setArenaResults(data)
-      setIsArenaModalOpen(true)
-    } catch (err: any) {
-      setError('Arena failed: ' + err.message)
-    } finally {
-      setGenerating(false)
-    }
-  }
-
-  const handleGoogleSuccess = async (credentialResponse: any) => {
-    try {
-      if (credentialResponse.credential) {
-        setGenerating(true)
-        await api.auth.google(credentialResponse.credential)
-        setQuotaExceeded(false)
-        setError('')
-        setRemainingTries('Unlimited')
-        setUsedTries(0)
-        // Try generating again immediately
-        await handleGenerate()
-      }
-    } catch (e) {
-      setGenerating(false)
-      setError('Google Sign-In failed.')
-    }
-  }
-
-
-  const levenshtein = (a: string, b: string) => {
-    if (a === b) return 0
-    const n = a.length, m = b.length
-    if (!n) return m
-    if (!m) return n
-    const dp = new Array(m + 1)
-    for (let j = 0; j <= m; j++) dp[j] = j
-    for (let i = 1; i <= n; i++) {
-      let prev = dp[0]
-      dp[0] = i
-      for (let j = 1; j <= m; j++) {
-        const tmp = dp[j]
-        const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1
-        dp[j] = Math.min(dp[j] + 1, dp[j - 1] + 1, prev + cost)
-        prev = tmp
-      }
-    }
-    return dp[m]
-  }
-
-  const getEditDistance = () => {
-    if (!result || !outputState) return null
-    const original = result.variations[outputState.selectedIndex]?.text || result.variations[0].text
-    const edited = outputState.editedText || ''
-    const dist = levenshtein(original, edited)
-    const denom = Math.max(1, Math.max(original.length, edited.length))
-    return { edited: original !== edited, editDistance: dist / denom, originalLength: original.length, editedLength: edited.length }
-  }
-
   const trackCopy = () => {
     if (!selected || !result) return
-    const ed = getEditDistance()
     api.analytics.track('prompt_copied', selected, {
       variation: result.variations[outputState?.selectedIndex || 0]?.label,
       qualityScore: result.qualityScore.overallScore,
-      ...(ed || {}),
     })
   }
 
   const rate = (rating: 'good' | 'bad') => {
     if (!selected || !result) return
-    const ed = getEditDistance()
+    setRated(rating)
     api.analytics.track('prompt_rated', selected, {
       rating,
       variation: result.variations[outputState?.selectedIndex || 0]?.label,
       qualityScore: result.qualityScore.overallScore,
-      ...(ed || {}),
     })
   }
 
@@ -253,33 +222,33 @@ export function GeneratorPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-black text-white mb-1">Prompt Generator</h1>
-        <p className="text-sm text-gray-500">Pick a prompt → fill the form → get a scored prompt in 60 seconds.</p>
+        <p className="text-sm text-gray-500">Pick a template, fill the form, get a scored prompt in 60 seconds.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_400px] gap-6">
-
-        {/* ── COLUMN 1: Template selector ── */}
+        {/* Column 1: template selector */}
         <div className="glass p-4 rounded-2xl h-fit lg:sticky lg:top-24">
-          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">1. Choose prompt</h2>
-          <TemplateSelector templates={templates} selected={selected} onSelect={setSelected} />
+          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">1. Choose template</h2>
+          {loadingTemplates && (
+            <div className="space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-12 skeleton" />)}
+            </div>
+          )}
+          {!loadingTemplates && templatesError && (
+            <div className="p-3 rounded-lg text-xs text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              {templatesError} <button onClick={loadTemplates} className="underline hover:text-red-300">Retry</button>
+            </div>
+          )}
+          {!loadingTemplates && !templatesError && <TemplateSelector templates={templates} selected={selected} onSelect={setSelected} />}
         </div>
 
-        {/* ── COLUMN 2: Form ── */}
+        {/* Column 2: form */}
         <div className="glass p-5 rounded-2xl">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
             <div className="flex items-center gap-3">
               <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">2. Fill the form</h2>
-              {remainingTries !== null && (
-                <div className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center gap-2 overflow-hidden">
-                  <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-                  <span className="text-[11px] font-bold text-purple-300">
-                    {remainingTries === 'Unlimited' ? 'Quota: Unlimited' : `Tries Left: ${typeof remainingTries === 'number' ? remainingTries : (limitTries - usedTries)}`}
-                  </span>
-                </div>
-              )}
+              <QuotaBadge />
             </div>
-
-            {/* Mode selector */}
             <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
               {(['quick', 'standard', 'advanced'] as Mode[]).map(m => (
                 <button
@@ -295,8 +264,7 @@ export function GeneratorPage() {
 
           {!selected && (
             <div className="py-16 text-center text-gray-600">
-              <div className="text-4xl mb-3">←</div>
-              <p className="text-sm">Select a prompt from Discover to begin</p>
+              <p className="text-sm">Select a template to begin</p>
             </div>
           )}
 
@@ -306,11 +274,16 @@ export function GeneratorPage() {
             </div>
           )}
 
-          {selected && form && !loadingForm && (
+          {selected && !loadingForm && formError && (
+            <div className="p-4 rounded-xl text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              {formError}
+            </div>
+          )}
+
+          {selected && form && !loadingForm && !formError && (
             <>
               <DynamicForm fields={form.fields} values={formData} onChange={handleFieldChange} />
 
-              {/* Pro tips */}
               {form.proTips.length > 0 && mode !== 'quick' && (
                 <div className="mt-6 p-4 rounded-xl" style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)' }}>
                   <p className="text-xs font-bold text-purple-400 uppercase tracking-wide mb-2">Pro tips</p>
@@ -324,113 +297,88 @@ export function GeneratorPage() {
                 </div>
               )}
 
-              {/* Progress + Generate */}
-              <div className="mt-6 flex items-center justify-between gap-4">
-                <div className="flex-1">
+              <div className="mt-6 flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex-1 min-w-[140px]">
                   <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
                     <span>{filledCount} / {form.fields.length} filled</span>
                   </div>
                   <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                    <div
-                      className="h-full rounded-full bg-gradient-brand transition-all duration-500"
-                      style={{ width: `${form.fields.length ? (filledCount / form.fields.length) * 100 : 0}%` }}
-                    />
+                    <div className="h-full rounded-full bg-gradient-brand transition-all duration-500" style={{ width: `${form.fields.length ? (filledCount / form.fields.length) * 100 : 0}%` }} />
                   </div>
                 </div>
 
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleOptimize}
-                      disabled={isOptimizing || !selected}
-                      title="Optimize Input (Autonomous Optimizer)"
-                      className="p-2.5 rounded-xl text-purple-400 hover:text-white hover:bg-purple-500/20 border border-purple-500/20 disabled:opacity-30 transition-all flex items-center gap-1"
-                    >
-                      {isOptimizing ? '✨...' : '✨ Optimize'}
-                    </button>
-
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      loading={generating}
-                      disabled={!canGenerate && !generating}
-                      onClick={handleGenerate}
-                    >
-                      {generating ? 'Generating...' : 'Generate ✨'}
-                    </Button>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleOptimize}
+                    disabled={isOptimizing || !selected}
+                    title="Rewrite your inputs so the template produces a better prompt"
+                    className="h-12 px-3 rounded-xl text-xs font-bold text-purple-400 hover:text-white hover:bg-purple-500/20 border border-purple-500/20 disabled:opacity-30 transition-all flex items-center gap-1.5"
+                  >
+                    {isOptimizing ? <Spinner className="w-3.5 h-3.5" /> : <SparkleIcon className="w-3.5 h-3.5" />}
+                    Optimize
+                  </button>
+                  <Button variant="primary" size="lg" loading={generating} disabled={!canGenerate && !generating} onClick={handleGenerate}>
+                    {generating ? 'Generating...' : 'Generate'}
+                  </Button>
+                </div>
               </div>
 
-              {quotaExceeded && (
-                <div className="mt-5 p-5 rounded-xl border border-red-500/20 bg-red-500/10 flex flex-col items-center">
-                  <p className="text-sm text-red-400 font-semibold mb-3 text-center">
-                    {error}
-                  </p>
-                  <GoogleLogin 
-                    onSuccess={handleGoogleSuccess} 
-                    onError={() => setError('Google login failed or was cancelled.')}
-                  />
-                </div>
-              )}
-              {error && !quotaExceeded && <p className="text-sm text-red-400 mt-3">{error}</p>}
+              {notice && <p className="text-xs text-emerald-400 mt-3">{notice}</p>}
+              {quotaMessage && <QuotaNotice message={quotaMessage} onSignedIn={() => void handleGenerate()} />}
+              {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
             </>
           )}
         </div>
 
-        {/* ── COLUMN 3: Output ── */}
+        {/* Column 3: output */}
         <div className="glass p-5 rounded-2xl h-fit lg:sticky lg:top-24">
           <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-5">3. Your prompt</h2>
 
           {!result && !generating && (
             <div className="py-16 text-center text-gray-600">
-              <div className="text-4xl mb-3 animate-float">✨</div>
+              <div className="w-10 h-10 mx-auto mb-3 rounded-xl flex items-center justify-center text-purple-400 animate-float" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                <SparkleIcon className="w-5 h-5" />
+              </div>
               <p className="text-sm">Your generated prompt will appear here</p>
-              <p className="text-xs text-gray-700 mt-1">with real-time quality score</p>
+              <p className="text-xs text-gray-700 mt-1">with a real-time quality score</p>
             </div>
           )}
 
           {generating && (
             <div className="py-16 text-center">
               <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-gradient-brand flex items-center justify-center animate-pulse-glow">
-                <svg className="animate-spin w-5 h-5 text-white" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.2"/>
-                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-                </svg>
+                <Spinner className="w-5 h-5 text-white" />
               </div>
               <p className="text-sm text-gray-400">Crafting your prompt...</p>
             </div>
           )}
 
-            {result && (
+          {result && !generating && (
+            <>
               <PromptDisplay
+                key={resultKey}
                 result={result}
+                domain={selectedTemplate?.domain ?? null}
                 onStateChange={setOutputState}
                 onCopy={trackCopy}
                 onOptimize={handleResultOptimize}
-                onArena={handleResultArena}
+                optimizing={isOptimizing}
               />
-            )}
-          {result && (
-            <div className="mt-4">
-              <p className="text-xs text-gray-500 mb-2">Was this prompt helpful?</p>
-              <div className="flex gap-3">
-                <Button variant="secondary" size="sm" onClick={() => rate('good')}>👍 Great prompt</Button>
-                <Button variant="secondary" size="sm" onClick={() => rate('bad')}>👎 Needs work</Button>
+              <div className="mt-4">
+                <p className="text-xs text-gray-500 mb-2">{rated ? 'Thanks for the feedback.' : 'Was this prompt helpful?'}</p>
+                <div className="flex gap-3">
+                  <Button variant="secondary" size="sm" onClick={() => rate('good')} className={rated === 'good' ? 'border-emerald-500/40 text-emerald-300' : ''}>
+                    <ThumbsUpIcon className="w-3.5 h-3.5" /> Great prompt
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => rate('bad')} className={rated === 'bad' ? 'border-amber-500/40 text-amber-300' : ''}>
+                    <ThumbsDownIcon className="w-3.5 h-3.5" /> Needs work
+                  </Button>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       </div>
-      {/* Arena Modal */}
-      {arenaResults && (
-        <ArenaModal
-          isOpen={isArenaModalOpen}
-          onClose={() => setIsArenaModalOpen(false)}
-          results={arenaResults.results}
-          jury={arenaResults.jury}
-          prompt={outputState?.editedText || ''}
-        />
-      )}
     </div>
   )
 }
